@@ -21,6 +21,7 @@ jobs:
         working-directory: terrafolder/03-Terra
         run: |
           terraform --version
+          terraform fmt
 
       - name: Terraform init
         working-directory: terrafolder/03-Terra
