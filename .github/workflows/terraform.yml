@@ -18,17 +18,17 @@ jobs:
           terraform --version
 
       - name: Terraform init
-        working-directory: ./03-terra
+        working-directory: /03-terra
         run:  |
           terraform init
 
 
       - name: Terraform init
-        working-directory: ./03-terra
+        working-directory: /03-terra
         run:  |
           terraform plan -out terraplan.txt
       - name: folder structure
-        working-directory: ./03-terra
+        working-directory: /03-terra
         run:  |
           ls -al
           
