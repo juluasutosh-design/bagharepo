@@ -12,23 +12,26 @@ jobs:
           wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt update && sudo apt install terraform
-      
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github_workspace }}/terrafolder
       - name: validate Terraform
         run: |
           terraform --version
 
       - name: Terraform init
-        working-directory: /03-terra
+        working-directory: ${{ github_workspace }}/terrafolder/03-Terra
         run:  |
           terraform init
 
 
-      - name: Terraform init
-        working-directory: /03-terra
+      - name: Terraform plan
+        working-directory: ${{ github_workspace }}/terrafolder/03-Terra
         run:  |
           terraform plan -out terraplan.txt
       - name: folder structure
-        working-directory: /03-terra
+        working-directory: ${{ github_workspace }}/terrafolder/03-Terra
         run:  |
           ls -al
           
