@@ -1,6 +1,3 @@
-provider "azurerm" {
-  features {}
-}
 
 resource "random_id" "baghazurerm_suffix_gen" {
         byte_length = 6
