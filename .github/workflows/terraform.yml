@@ -15,23 +15,25 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
         with:
-          path: ${{ github_workspace }}/terrafolder
+          path: terrafolder
+      
       - name: validate Terraform
+        working-directory: terrafolder/03-Terra
         run: |
           terraform --version
 
       - name: Terraform init
-        working-directory: ${{ github_workspace }}/terrafolder/03-Terra
+        working-directory: terrafolder/03-Terra
         run:  |
           terraform init
 
 
       - name: Terraform plan
-        working-directory: ${{ github_workspace }}/terrafolder/03-Terra
+        working-directory: terrafolder/03-Terra
         run:  |
           terraform plan -out terraplan.txt
       - name: folder structure
-        working-directory: ${{ github_workspace }}/terrafolder/03-Terra
+        working-directory: terrafolder/03-Terra
         run:  |
           ls -al
           
