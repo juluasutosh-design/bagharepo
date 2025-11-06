@@ -32,7 +32,7 @@ jobs:
         with:
           azcliversion: 2.42.0
           inlineScript: |
-            container_dict= ${{ steps.Map.outputs.my_arr}}
+            IFS=',' read -ra container_dict <<< "${{ steps.Map.outputs.my_arr}}"
             for val in "${container_dict[@]}"; do
               sed -i 's/=/:/' $val
             done  
