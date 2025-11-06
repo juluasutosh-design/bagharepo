@@ -32,11 +32,7 @@ jobs:
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               if [[ "$key" =~ ^us ]]; then
                 echo "STORAGE_ACCOUNT_US=lowmw" >> $GITHUB_ENV
-              else
-                exit 0
-                if [ -n "${{ github.event.inputs.Single_Factfile }}" ]; then
-                  exit 0
-                else
+                if [ -n "${{ github.event.inputs.file }}" ]; then
                   IFS=',' read -ra FACTFILES <<< "${{ github.event.inputs.file }}"
                     for file in "${FACTFILES[@]}"; do
                       echo "$key $file"
