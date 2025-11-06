@@ -21,7 +21,7 @@ jobs:
           container_dict["si"]="fxgmssi"
           container_dict["uat-eu"]="fxgmsuat"
           container_dict["perf"]="fxgmsperf"
-          echo "container_dict=$container_dict" >> $GITHUB_ENV
+          echo "container_dict=$container_dict[@]" >> $GITHUB_ENV
       - name: Debug
         run:  |
           echo "${{ env.container_dict }}"
