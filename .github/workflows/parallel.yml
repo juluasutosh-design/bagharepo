@@ -28,9 +28,6 @@ jobs:
             for key in "${!container_dict[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               if [[ "$key" =~ ^us* ]]; then
-                echo "STORAGE_ACCOUNT_US=lowmw" >> $GITHUB_ENV
+                echo "STORAGE_ACCOUNT_US"
               fi  
-                for file in "${FACTFILES[@]}"; do
-                  echo "$key"
-                done
-            done | xargs -n 1 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0"'
+
