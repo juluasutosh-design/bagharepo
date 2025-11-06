@@ -12,19 +12,23 @@ jobs:
   bagha:
     runs-on: ubuntu-latest
     steps: 
+      - name: Mapping
+        id: Map
+        run:  |
+          echo "starting mapping"
+          declare -A container_dict
+          container_dict["uat"]="fxgmsuat"
+          container_dict["si"]="fxgmssi"
+          container_dict["uat-eu"]="fxgmsuat"
+          container_dict["perf"]="fxgmsperf"
+          echo "container_dict=$container_dict" >> $GITHUB_OUTPUT
      
       - name: parallel execution
         uses: azure/CLI@v1
         with:
           azcliversion: 2.42.0
           inlineScript: |
-            echo "starting mapping"
-            declare -A container_dict
-            container_dict["uat"]="fxgmsuat"
-            container_dict["si"]="fxgmssi"
-            container_dict["uat-eu"]="fxgmsuat"
-            container_dict["perf"]="fxgmsperf"
-            echo "container_dict=$container_dict"
+            container_dict=${{ steps.Map.outputs.container_dict}}
             echo "starting"
             for key in "${!container_dict[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
