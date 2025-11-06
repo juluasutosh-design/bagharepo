@@ -34,7 +34,7 @@ jobs:
           inlineScript: |
             IFS=',' read -ra container_dict <<< "${{ env.my_arr }}"
             for val in "${container_dict[@]}"; do
-              sed -i 's/=/:/' $val
+              container_dict=$(echo "$val" | sed 's/=/:/g')
             done  
             echo "starting"
             for key in "${!container_dict[@]}"; do
