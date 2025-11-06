@@ -5,8 +5,12 @@ on:
     inputs:
       file:
         description: input file
-        type: string
-        default: ''
+        type: choice
+        default: 'julu'
+        options:
+          - 'julu'
+          - 'julu,sibun'
+          - 'julu,sibun,bagha'
       single_file:
         description: input single file
         type: string
