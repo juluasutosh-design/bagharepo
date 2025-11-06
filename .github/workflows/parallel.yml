@@ -17,12 +17,14 @@ jobs:
         run:  |
           echo "starting mapping"
           
-          container_dict["uat"]="fxgmsuat"
-          container_dict["si"]="fxgmssi"
-          container_dict["uat-eu"]="fxgmsuat"
-          container_dict["perf"]="fxgmsperf"
-          my_array=("uat"="fxgmsuat","si"="fxgmssi","uat-eu"="fxgmsuat","perf"="fxgmsperf")
-          echo "my_arr=${my_array[@]}" >> $GITHUB_ENV
+
+          json=$(jq -n '{
+            "uat":"fxgmsuat",
+            "si":"fxgmssi",
+            "uat-eu":"fxgmsuat",
+            "perf":"fxgmsperf"
+          }')
+          echo "my_arr=$json" >> $GITHUB_ENV
       - name: Debug
         run:  |
           echo "${{ env.my_arr }}"
@@ -32,22 +34,15 @@ jobs:
         with:
           azcliversion: 2.42.0
           inlineScript: |
-            declare -A container_dict_new
             IFS=',' read -ra container_dict <<< "${{ env.my_arr }}"
-            for i in "${!container_dict[@]}"; do
-              echo "$i"
-              container_dict_new[$i]=$(echo "${container_dict[$i]}" | sed 's/=/:/g')
-              echo "${container_dict_new[$i]}"
-            done 
-            container_dict_new=$(IFS=','; echo "${container_dict_new[*]}")
-            echo "${container_dict_new[@]}"
+            echo "${container_dict[@]}"
             echo "starting"
             for key in "${!container_dict_new[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               for file in "${FACTFILES[@]}"; do
                 echo "$key $file"
               done  
-            done | xargs -n 2 -P ${#container_dict_new[@]} bash -c 'echo "Processing key=$0 file=$1"'
+            done | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0 file=$1"'
               
               
             
