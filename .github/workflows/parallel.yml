@@ -25,7 +25,7 @@ jobs:
           echo "my_arr=${my_array[@]}" >> $GITHUB_ENV
       - name: Debug
         run:  |
-          echo "${{ env.container_dict }}"
+          echo "${{ env.my_arr }}"
          
       - name: parallel execution
         uses: azure/CLI@v1
@@ -39,6 +39,7 @@ jobs:
               container_dict_new[$i]=$(echo "${container_dict[$i]}" | sed 's/=/:/g')
               echo "${container_dict_new[$i]}"
             done 
+            container_dict_new=$(IFS=','; echo "${container_dict_new[*]}")
             echo "${container_dict_new[@]}"
             echo "starting"
             for key in "${!container_dict_new[@]}"; do
