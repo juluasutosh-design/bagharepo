@@ -16,7 +16,7 @@ jobs:
         id: Map
         run:  |
           echo "starting mapping"
-          declare -A container_dict
+          
           container_dict["uat"]="fxgmsuat"
           container_dict["si"]="fxgmssi"
           container_dict["uat-eu"]="fxgmsuat"
@@ -32,17 +32,18 @@ jobs:
         with:
           azcliversion: 2.42.0
           inlineScript: |
+            declare -A container_dict_new
             IFS=',' read -ra container_dict <<< "${{ env.my_arr }}"
-            for val in "${container_dict[@]}"; do
-              container_dict=$(echo "$val" | sed 's/=/:/g')
+            for i in "${!container_dict[@]}"; do
+              container_dict_new[$i]=$(echo "${container_dict[$i]}" | sed 's/=/:/g')
             done  
             echo "starting"
-            for key in "${!container_dict[@]}"; do
+            for key in "${!container_dict_new[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               for file in "${FACTFILES[@]}"; do
                 echo "$key $file"
               done  
-            done | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0 file=$1"'
+            done | xargs -n 2 -P ${#container_dict_new[@]} bash -c 'echo "Processing key=$0 file=$1"'
               
               
             
