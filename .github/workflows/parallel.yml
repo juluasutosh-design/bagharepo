@@ -32,9 +32,8 @@ jobs:
             container_dict["uat-eu"]="fxgmsuat"
             container_dict["us-perf"]="fxgmsperf"
             echo "starting"
-            if [[ inputs.file == "julu" || inputs.file == "julu,sibun" ]]; then
+            if [[ "${{ github.event.inputs.file }}" == "julu" || "${{ github.event.inputs.file }}" == "julu,sibun" ]]; then
               for key in "${!container_dict[@]}"; do
-                IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
                 if [[ "$key" =~ ^us ]]; then
                   IFS=',' read -ra FACTFILES <<< "${{ github.event.inputs.file }}"
                   for file in "${FACTFILES[@]}"; do
@@ -42,4 +41,4 @@ jobs:
                   done
                 fi
               done 
-            fi | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing Env=$0 and File=$1'"
+            fi | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing Env=$1 and File=$2'"
