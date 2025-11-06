@@ -11,7 +11,6 @@ on:
         description: input single file
         type: string
         default: ''   
-
 jobs:
   bagha:
     runs-on: ubuntu-latest
@@ -32,7 +31,14 @@ jobs:
             for key in "${!container_dict[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               if [[ "$key" =~ ^us ]]; then
-                echo "$key & STORAGE_ACCOUNT_US"
-              fi 
-            done  
-
+                echo "STORAGE_ACCOUNT_US=lowmw" >> $GITHUB_ENV
+              fi
+              if [ -n "${{ github.event.inputs.single_file }}" ]; then
+                echo "${{ github.event.inputs.single_file }}"
+              else
+                IFS=',' read -ra FACTFILES <<< "${{ github.event.inputs.file }}"
+                for file in "${FACTFILES[@]}"; do
+                  echo "$key $file"
+                done
+              fi  
+            done | xargs -n 1 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0" file=$1'
