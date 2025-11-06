@@ -38,7 +38,8 @@ jobs:
               echo "$i"
               container_dict_new[$i]=$(echo "${container_dict[$i]}" | sed 's/=/:/g')
               echo "${container_dict_new[$i]}"
-            done  
+            done 
+            echo "${container_dict_new[@]}"
             echo "starting"
             for key in "${!container_dict_new[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
