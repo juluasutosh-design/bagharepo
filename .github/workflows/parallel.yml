@@ -32,7 +32,7 @@ jobs:
             container_dict["uat-eu"]="fxgmsuat"
             container_dict["us-perf"]="fxgmsperf"
             echo "starting"
-            if [[ inputs.file == "julu" || inputs.file == "julu,sibun" ]]
+            if [[ inputs.file == "julu" || inputs.file == "julu,sibun" ]]; then
               for key in "${!container_dict[@]}"; do
                 IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
                 if [[ "$key" =~ ^us ]]; then
