@@ -37,10 +37,10 @@ jobs:
                 if [ -n "${{ github.event.inputs.Single_Factfile }}" ]; then
                   exit 0
                 else
-                IFS=',' read -ra FACTFILES <<< "${{ github.event.inputs.file }}"
-                  for file in "${FACTFILES[@]}"; do
-                    echo "$key $file"
-                  done
+                  IFS=',' read -ra FACTFILES <<< "${{ github.event.inputs.file }}"
+                    for file in "${FACTFILES[@]}"; do
+                      echo "$key $file"
+                    done
                 fi
               fi  
             done | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0 file=$1'"
