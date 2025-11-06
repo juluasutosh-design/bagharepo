@@ -41,4 +41,4 @@ jobs:
                   done
                 fi
               done 
-            fi | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing Env=$1 and File=$2'"
+            fi | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing Env=$1 and File=$2"'
