@@ -31,8 +31,8 @@ jobs:
                 echo "STORAGE_ACCOUNT_US=lowmw" >> $GITHUB_ENV
               else
                 echo "STORAGE_ACCOUNT_EU=lowmw-eu" >> $GITHUB_ENV
+              fi  
                 for file in "${FACTFILES[@]}"; do
                   echo "$key"
                 done
-              fi  
             done | xargs -n 1 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0"'
