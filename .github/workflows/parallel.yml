@@ -27,7 +27,6 @@ jobs:
             echo "container_dict=$container_dict"
             echo "starting"
             for key in "${!container_dict[@]}"; do
-              echo "$key and container ${container_dict[$key]}"
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               for file in "${FACTFILES[@]}"; do
                 echo "$key $file"
