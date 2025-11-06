@@ -12,41 +12,22 @@ jobs:
   bagha:
     runs-on: ubuntu-latest
     steps: 
-      - name: Mapping
-        id: Map
-        run:  |
-          echo "starting mapping"
-          
-
-          json=$(echo '{
-            "uat":"fxgmsuat",
-            "si":"fxgmssi",
-            "uat-eu":"fxgmsuat",
-            "perf":"fxgmsperf"
-          }' | jq -r '.')
-          echo "my_arr=$json" >> $GITHUB_ENV
-      - name: Debug
-        run:  |
-          echo "${{ env.my_arr }}"
-         
+     
       - name: parallel execution
         uses: azure/CLI@v1
         with:
           azcliversion: 2.42.0
           inlineScript: |
-            IFS=',' read -ra container_dict <<< "${{ env.my_arr }}"
-            echo "${container_dict[@]}"
+            echo "starting mapping"
+            declare -A container_dict
+            container_dict["uat"]="fxgmsuat"
+            container_dict["si"]="fxgmssi"
+            container_dict["uat-eu"]="fxgmsuat"
+            container_dict["perf"]="fxgmsperf"
             echo "starting"
-            for key in "${!container_dict_new[@]}"; do
+            for key in "${!container_dict[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               for file in "${FACTFILES[@]}"; do
-                echo "$key $file"
+                echo "$key"
               done  
-            done | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0 file=$1"'
-              
-              
-            
-        
-        
-
-  
+            done | xargs -n 1 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0"'
