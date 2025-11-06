@@ -34,7 +34,7 @@ jobs:
               echo "$key and container ${container_dict[$key]}"
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               for file in "${FACTFILES[@]}"; do
-                echo "i am bagha"
+                echo "$key $file"
               done  
             done | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0 file=$1"'
               
