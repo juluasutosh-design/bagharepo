@@ -28,7 +28,7 @@ jobs:
         with:
           azcliversion: 2.42.0
           inlineScript: |
-            container_dict=${{ steps.Map.outputs.container_dict}}
+            container_dict=$(echo '${{ steps.Map.outputs.container_dict }}' | jq -r 'to_entries[] | "\(.key) \(.value)"')
             echo "starting"
             for key in "${!container_dict[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
