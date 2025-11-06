@@ -31,7 +31,7 @@ jobs:
             echo "starting"
             for key in "${!container_dict[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
-              if [[ $key == ^us* ]]; then
+              if [[ $key ~ "^us*" ]]; then
                 echo "$key & STORAGE_ACCOUNT_US"
               fi 
             done  
