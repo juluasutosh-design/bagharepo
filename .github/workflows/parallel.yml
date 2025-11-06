@@ -35,7 +35,9 @@ jobs:
             declare -A container_dict_new
             IFS=',' read -ra container_dict <<< "${{ env.my_arr }}"
             for i in "${!container_dict[@]}"; do
+              echo "$i"
               container_dict_new[$i]=$(echo "${container_dict[$i]}" | sed 's/=/:/g')
+              echo "${container_dict_new[$i]}"
             done  
             echo "starting"
             for key in "${!container_dict_new[@]}"; do
