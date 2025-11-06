@@ -28,7 +28,9 @@ jobs:
             for key in "${!container_dict[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               if [[ "$key" =~ ^us* ]]; then
-                echo "who is bagha"
+                echo "STORAGE_ACCOUNT_US=lowmw" >> $GITHUB_ENV
+              else
+                echo "STORAGE_ACCOUNT_EU=lowmw-eu" >> $GITHUB_ENV
                 for file in "${FACTFILES[@]}"; do
                   echo "$key"
                 done
