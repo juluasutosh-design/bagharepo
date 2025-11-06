@@ -37,9 +37,9 @@ jobs:
                 IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
                 if [[ "$key" =~ ^us ]]; then
                   IFS=',' read -ra FACTFILES <<< "${{ github.event.inputs.file }}"
-                    for file in "${FACTFILES[@]}"; do
-                      echo "$key $file"
-                    done
+                  for file in "${FACTFILES[@]}"; do
+                    echo "$key $file"
+                  done
                 fi
               done 
             fi | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing Env=$0 and File=$1'"
