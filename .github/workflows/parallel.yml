@@ -32,11 +32,15 @@ jobs:
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               if [[ "$key" =~ ^us ]]; then
                 echo "STORAGE_ACCOUNT_US=lowmw" >> $GITHUB_ENV
-                if [ -n "${{ github.event.inputs.file }}" ]; then
+                if [ "${{ github.event.inputs.file }}" == "" ]; then
+                  echo "$key"
+                else  
                   IFS=',' read -ra FACTFILES <<< "${{ github.event.inputs.file }}"
                     for file in "${FACTFILES[@]}"; do
                       echo "$key $file"
                     done
                 fi
+              else
+                continue
               fi  
-            done | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0 file=$1'"
+            done | xargs -n  -P ${#container_dict[@]} bash -c 'echo "Processing Env=$0 '"
