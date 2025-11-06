@@ -39,4 +39,4 @@ jobs:
                   echo "$key $file"
                 done
               fi  
-            done | xargs -n 1 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0" file=$1'
+            done | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0" file=$1'
