@@ -1,0 +1,45 @@
+name: Parallel 
+
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: input file
+        type: string
+        default: ''
+
+jobs:
+  bagha:
+    runs-on: linux-latest
+    steps:
+      - name: Mapping
+        id: Map
+        run:  |
+          echo "starting mapping"
+          declare -A container_dict
+          container_dict["uat"] = "fxgmsuat"
+          container_dict["si"] = "fxgmssi"
+          container_dict["uat-eu"] = "fxgmsuat"
+          container_dict["perf"] = "fxgmsperf"
+          echo"container_dict=$container_dict" >> $GITHUB_OUTPUT
+     
+      - name: parallel execution
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.42.0
+          inlineScript: |
+            container_dict= container_dict=$(echo '${{ steps.Map.outputs.container_dict }}' | jq -r 'to_entries[] | "\(.key) \(.value)"')
+            echo "starting"
+            for key in "${!container_dict[@]}"; do
+              echo "$key and container ${container_dict[$key]}"
+              IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
+              for file in "${FACTFILES[@]}"; do
+                echo "i am bagha"
+              done | xargs -n 2 -P ${#container_dict[@]} bash -c 'echo "Processing key=$0 file=$1"'
+              
+              
+            
+        
+        
+
+  
