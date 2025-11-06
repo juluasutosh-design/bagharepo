@@ -17,10 +17,10 @@ jobs:
         run:  |
           echo "starting mapping"
           declare -A container_dict
-          container_dict["uat"] = "fxgmsuat"
-          container_dict["si"] = "fxgmssi"
-          container_dict["uat-eu"] = "fxgmsuat"
-          container_dict["perf"] = "fxgmsperf"
+          container_dict["uat"]="fxgmsuat"
+          container_dict["si"]="fxgmssi"
+          container_dict["uat-eu"]="fxgmsuat"
+          container_dict["perf"]="fxgmsperf"
           echo"container_dict=$container_dict" >> $GITHUB_OUTPUT
      
       - name: parallel execution
