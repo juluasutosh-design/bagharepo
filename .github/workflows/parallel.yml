@@ -18,12 +18,12 @@ jobs:
           echo "starting mapping"
           
 
-          json=$(jq -n '{
+          json=$(echo "{
             "uat":"fxgmsuat",
             "si":"fxgmssi",
             "uat-eu":"fxgmsuat",
             "perf":"fxgmsperf"
-          }')
+          }" | jq '.')
           echo "my_arr=$json" >> $GITHUB_ENV
       - name: Debug
         run:  |
