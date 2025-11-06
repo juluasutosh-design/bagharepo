@@ -21,7 +21,8 @@ jobs:
           container_dict["si"]="fxgmssi"
           container_dict["uat-eu"]="fxgmsuat"
           container_dict["perf"]="fxgmsperf"
-          container_dict >> $GITHUB_ENV
+          my_array=("uat"="fxgmsuat","si"="fxgmssi","uat-eu"="fxgmsuat","perf"="fxgmsperf")
+          echo "my_arr=${my_array[@]}" >> $GITHUB_OUTPUT
       - name: Debug
         run:  |
           echo "${{ env.container_dict }}"
@@ -31,7 +32,10 @@ jobs:
         with:
           azcliversion: 2.42.0
           inlineScript: |
-            container_dict=$(echo '${{ steps.Map.outputs.container_dict }}' | jq -r 'to_entries[] | "\(.key) \(.value)"')
+            container_dict= ${{ steps.Map.outputs.my_arr}}
+            for val in "${container_dict[@]}"; do
+              sed -i s/=/:/ $val
+            done  
             echo "starting"
             for key in "${!container_dict[@]}"; do
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
