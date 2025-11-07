@@ -37,6 +37,7 @@ jobs:
                 if [[ "$key" =~ ^us ]]; then
                   IFS=',' read -ra FACTFILES <<< "${{ github.event.inputs.file }}"
                   for file in "${FACTFILES[@]}"; do
+                    az --version
                     echo "$key $file"
                   done
                 fi
