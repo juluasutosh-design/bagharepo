@@ -40,7 +40,7 @@ jobs:
               fi
               az --version > /dev/null 2>&1
               echo "Uploading $FACTFILE to $ENV_KEY"
-              az --version --no-output 2>&1
+              az --version > /dev/null 2>&1
                   }
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               export -f upload_factfile
