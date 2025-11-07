@@ -35,7 +35,7 @@ jobs:
             upload_factfile() {
               local ENV_KEY="$1"
               local FACTFILE="$2"
-              if [[ "$ENV_KEY" =~ ^us]]; then
+              if [[ "$ENV_KEY" =~ ^us ]]; then
                   export STORAGE_ACCOUNT="eastus2"
               fi
               az --version
