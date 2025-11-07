@@ -38,9 +38,9 @@ jobs:
               if [[ "$ENV_KEY" =~ ^us ]]; then
                   export STORAGE_ACCOUNT="eastus2"
               fi
-              az --version
+              az --version --no-output
               echo "Uploading $FACTFILE to $ENV_KEY"
-              az --version
+              az --version --no-output
                   }
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               export -f upload_factfile
