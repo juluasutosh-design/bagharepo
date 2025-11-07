@@ -42,7 +42,7 @@ jobs:
               echo "Uploading $FACTFILE to $ENV_KEY"
               az --version
                   }
-              IFS=',' read -ra FACTFILES <<< "${{steps.whitespace.outputs.TrimFactfile}}"
+              IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               export -f upload_factfile
               for key in "${!container_dict[@]}"; do
                     for FACTFILE in "${FACTFILES[@]}"; do
