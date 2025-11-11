@@ -3,6 +3,13 @@ name: Parallel
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: input env
+        type: choice
+        options:
+          - 'us-uat'
+          - 'us-uat,us-si'
+          - 'us-uat,us-si,eu-ki'
       file:
         description: input file
         type: choice
@@ -21,6 +28,7 @@ jobs:
     env:
       us-uat: fxgmsuat
       us-si: fxgmssi
+      eu-ki: baghauip
     steps: 
      
       - name: parallel execution
