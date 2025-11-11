@@ -18,6 +18,9 @@ on:
 jobs:
   bagha:
     runs-on: ubuntu-latest
+    env:
+      us-uat: fxgmsuat
+      us-si: fxgmssi
     steps: 
      
       - name: parallel execution
@@ -26,26 +29,23 @@ jobs:
           azcliversion: 2.42.0
           inlineScript: |
             echo "starting mapping"
-            declare -A container_dict
-            container_dict["us-uat"]="fxgmsuat"
-            container_dict["us-si"]="fxgmssi"
-            container_dict["uat-eu"]="fxgmsuat"
-            container_dict["us-perf"]="fxgmsperf"
             echo "starting"
+            IFS=',' read -ra container_dict <<< "${{ inputs.file }}"
             upload_factfile() {
               local ENV_KEY="$1"
               local FACTFILE="$2"
+              local CON=$3
               if [[ "$ENV_KEY" =~ ^us ]]; then
                   export STORAGE_ACCOUNT="eastus2"
               fi
               az --version > /dev/null 2>&1
-              echo "Uploading $FACTFILE to $ENV_KEY"
+              echo "Uploading $FACTFILE to $ENV_KEY and $CON"
               az --version > /dev/null 2>&1
                   }
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               export -f upload_factfile
-              for key in "${!container_dict[@]}"; do
+              for key in "${container_dict[@]}"; do
                     for FACTFILE in "${FACTFILES[@]}"; do
-                      echo "$key $FACTFILE"
+                      echo "$key $FACTFILE $($key)"
                     done
-              done | xargs -n 2 -P ${#container_dict[@]} bash -c 'upload_factfile "$0" "$1"'
+              done | xargs -n 3 -P ${#container_dict[@]} bash -c 'upload_factfile "$0" "$1"'
