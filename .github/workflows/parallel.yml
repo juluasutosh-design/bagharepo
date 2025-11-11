@@ -47,10 +47,8 @@ jobs:
                   }
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               export -f upload_factfile
-              for key in "${container_dict[@]}"; do
-                   temp=$key
-                   container=${{ env.temp}}
+              for key in "${!container_dict[@]}"; do
                     for FACTFILE in "${FACTFILES[@]}"; do
-                      echo "$key $FACTFILE $container"
+                      echo "$key $FACTFILE ${$key}"
                     done
               done | xargs -n 3 -P ${#container_dict[@]} bash -c 'upload_factfile "$0" "$1" "$2"'
