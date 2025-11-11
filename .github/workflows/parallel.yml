@@ -38,7 +38,7 @@ jobs:
           inlineScript: |
             echo "starting mapping"
             echo "starting"
-            IFS=',' read -ra container_dict <<< "${{ inputs.file }}"
+            IFS=',' read -ra container_dict <<< "${{ inputs.environment }}"
             upload_factfile() {
               local ENV_KEY="$1"
               local FACTFILE="$2"
