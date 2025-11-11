@@ -48,4 +48,4 @@ jobs:
                     for FACTFILE in "${FACTFILES[@]}"; do
                       echo "$key $FACTFILE $($key)"
                     done
-              done | xargs -n 3 -P ${#container_dict[@]} bash -c 'upload_factfile "$0" "$1"'
+              done | xargs -n 3 -P ${#container_dict[@]} bash -c 'upload_factfile "$0" "$1" "$2"'
