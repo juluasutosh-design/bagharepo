@@ -43,17 +43,14 @@ jobs:
               local ENV_KEY="$1"
               local FACTFILE="$2"
               local CON=$3
-              if [[ "$ENV_KEY" =~ ^us ]]; then
-                  export STORAGE_ACCOUNT="eastus2"
-              fi
-              az --version > /dev/null 2>&1
               echo "Uploading $FACTFILE to $ENV_KEY and $CON"
-              az --version > /dev/null 2>&1
                   }
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
               export -f upload_factfile
               for key in "${container_dict[@]}"; do
+                   temp=$key
+                   container=${{ env.temp}}
                     for FACTFILE in "${FACTFILES[@]}"; do
-                      echo "$key $FACTFILE $($key)"
+                      echo "$key $FACTFILE $container"
                     done
               done | xargs -n 3 -P ${#container_dict[@]} bash -c 'upload_factfile "$0" "$1" "$2"'
