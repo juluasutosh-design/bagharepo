@@ -42,7 +42,7 @@ jobs:
             upload_factfile() {
               local ENV_KEY="$1"
               local FACTFILE="$2"
-              local CON=$3
+              local CON="$3"
               echo "Uploading $FACTFILE to $ENV_KEY and $CON"
                   }
               IFS=',' read -ra FACTFILES <<< "${{ inputs.file }}"
