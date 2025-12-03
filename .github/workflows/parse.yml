@@ -21,17 +21,13 @@ jobs:
          run: |
           set -e  # Exit on error
           envi=("usuat" "euuat") # declare Array
-          extract() {
+          TriggerApi() {
           # Convert YAML to JSON and extract the tag
           local e="$1"
           echo "$e"
           releaseversion=$(yq -r '.["julu-deploy"].global.image.tag' "./deployment/aks/chart/${e}.values.yaml")
           echo "${releaseversion}"
-          echo "releaseversion=$releaseversion" >> $GITHUB_ENV
-          TriggerApi "$e"
-          }
-          TriggerApi() {
-          local en="$1"
+          echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
           echo "Initiating Portal update through API"
           portal_codes='${{ vars.CODES_JSON }}'
           if [ -z "$portal_codes" ]; then
@@ -40,21 +36,20 @@ jobs:
            fi
           echo "Successfully read portal-codes.json"
            releaseversion="${{ env.releaseversion }}"
-          if ! code=$(echo "$portal_codes" | jq -r ".${en}" 2>/dev/null); then
-           echo "Failed to parse code for environment: ${en}. Skipping.."
+          if ! code=$(echo "$portal_codes" | jq -r ".${e}" 2>/dev/null); then
+           echo "Failed to parse code for environment: ${e}. Skipping.."
            exit 0
            fi
-          echo "Successfully retrieved code: $code for ${en}"
+          echo "Successfully retrieved code: $code for ${e}"
            if [ "$code" == "null" ] || [ -z "$code" ]; then
            echo "Code not found for environment ${envi}. Skipping..."
            exit 0
            fi
-          echo "envi=$en" >> "$GITHUB_ENV"
+          echo "envi=$e" >> "$GITHUB_ENV"
           echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
           echo "code=$code" >> "$GITHUB_ENV"
-          echo "Environment: ${en} | Release Version: $releaseversion | Code: $code"
+          echo "Environment: $envi | Release Version: $releaseversion | Code: $code"
           }
-          export -f extract 
           export -f TriggerApi
           for e in "${envi[@]}"; do
             echo "$e" 
