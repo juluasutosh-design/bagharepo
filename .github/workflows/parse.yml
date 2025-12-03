@@ -48,7 +48,7 @@ jobs:
           echo "envi=$e" >> "$GITHUB_ENV"
           echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
           echo "code=$code" >> "$GITHUB_ENV"
-          echo "Environment: $envi | Release Version: $releaseversion | Code: $code"
+          echo "Environment: ${{ env.envi }} | Release Version: ${{ env.releaseversion }} | Code: $code"
           }
           export -f TriggerApi
           for e in "${env_array[@]}"; do
