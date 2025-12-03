@@ -1,0 +1,32 @@
+name: job execution flow
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  tkn:
+    runs-on: windows-latest
+    steps:
+      - name: my first
+        run:  |
+          echo "Bagha"
+          
+  second-job:
+    needs: tkn
+    runs-on: self-hosted
+    steps:
+      - name: my second
+        run:  |
+          echo "sibun"
+          exit 1
+  third-job:
+    needs: [tkn , second-job]
+    if: ${{ failure () || cancelled () }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: my third
+        run:  |
+          echo "julusibun"
+  
+  
