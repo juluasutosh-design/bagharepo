@@ -1,0 +1,52 @@
+name: Parse
+
+on:
+  workflow_dispatch:
+jobs:  
+  portal-update:
+      runs-on: 1-core
+      steps:
+       - name: Checkout repo
+         uses: actions/checkout@v5
+       - name: Extract release version & Trigger API using POST Request
+         run: |
+          set -e  # Exit on error
+          declare -A envi=(usuat,euuat) # declare Array
+          extract() {
+          # Convert YAML to JSON and extract the tag
+          local e="$1"
+          echo "starting"
+          releaseversion=$(yq eval -j "./deployment/aks/chart/${e}.values.yaml" | jq -r '.["niq-deploy"].global.image.tag')
+          echo "${releaseversion}"
+          echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
+          TriggerApi "$e"
+          }
+          TriggerApi() {
+          local en="$1"
+          echo "Initiating Portal update through API"
+          portal_codes='${{ vars.CODES_JSON }}'
+          if [ -z "$portal_codes" ]; then
+           echo "Failed to read portal-codes.json. Skipping..."
+           exit 0
+           fi
+          echo "Successfully read portal-codes.json"
+           releaseversion="${{ env.releaseversion }}"
+          if ! code=$(echo "$portal_codes" | jq -r ".{en}" 2>/dev/null); then
+           echo "Failed to parse code for environment: ${en}. Skipping.."
+           exit 0
+           fi
+          echo "Successfully retrieved code: $code for {en}"
+           if [ "$code" == "null" ] || [ -z "$code" ]; then
+           echo "Code not found for environment ${envi}. Skipping..."
+           exit 0
+           fi
+          echo "envi=$en" >> "$GITHUB_ENV"
+          echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
+          echo "code=$code" >> "$GITHUB_ENV"
+          echo "Environment: ${en} | Release Version: $releaseversion | Code: $code"
+          }
+          export -f extract 
+          export -f TriggerApi
+          for e in "${envi[@]}"; do
+            echo "$e" 
+          done  | xargs -n 1 -P 2 bash -c 'extract "$0"'
