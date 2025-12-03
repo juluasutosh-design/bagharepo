@@ -25,8 +25,7 @@ jobs:
           # Convert YAML to JSON and extract the tag
           local e="$1"
           echo "$e"
-          export e
-          yq eval -j "./deployment/aks/chart/{e}.values.yaml"
+          releaseversion=$(yq -r '.["julu-deploy"].global.image.tag' "./deployment/aks/chart/${e}.values.yaml")
           echo "${releaseversion}"
           echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
           TriggerApi "$e"
