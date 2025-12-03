@@ -26,7 +26,7 @@ jobs:
           local e="$1"
           echo "$e"
           export e
-          releaseversion=$(yq eval -j './deployment/aks/chart/{e}.values.yaml' | jq -r '.["julu-deploy"].global.image.tag')
+          releaseversion=$(yq eval -j "./deployment/aks/chart/{e}.values.yaml" | jq -r '.["julu-deploy"].global.image.tag')
           echo "${releaseversion}"
           echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
           TriggerApi "$e"
