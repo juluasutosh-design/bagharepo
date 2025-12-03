@@ -20,7 +20,7 @@ jobs:
          working-directory: ${{ github.workspace }}/my_repo
          run: |
           set -e  # Exit on error
-          envi=("usuat" "euuat") # declare Array
+          env_array=("usuat" "euuat") # declare Array
           TriggerApi() {
           # Convert YAML to JSON and extract the tag
           local e="$1"
@@ -51,6 +51,6 @@ jobs:
           echo "Environment: $envi | Release Version: $releaseversion | Code: $code"
           }
           export -f TriggerApi
-          for e in "${envi[@]}"; do
+          for e in "${env_array[@]}"; do
             echo "$e" 
           done  | xargs -n 1 -P 2 bash -c 'TriggerApi "$0"'
