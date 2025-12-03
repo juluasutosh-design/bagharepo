@@ -27,7 +27,6 @@ jobs:
           echo "$e"
           releaseversion=$(yq -r '.["julu-deploy"].global.image.tag' "./deployment/aks/chart/${e}.values.yaml")
           echo "${releaseversion}"
-          echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
           echo "Initiating Portal update through API"
           portal_codes='${{ vars.CODES_JSON }}'
           if [ -z "$portal_codes" ]; then
@@ -35,7 +34,6 @@ jobs:
            exit 0
            fi
           echo "Successfully read portal-codes.json"
-           releaseversion="${{ env.releaseversion }}"
           if ! code=$(echo "$portal_codes" | jq -r ".${e}" 2>/dev/null); then
            echo "Failed to parse code for environment: ${e}. Skipping.."
            exit 0
@@ -45,8 +43,7 @@ jobs:
            echo "Code not found for environment ${envi}. Skipping..."
            exit 0
            fi
-          echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
-          echo "Environment: $envi | Release Version: $releaseversion | Code: $code"
+          echo "Environment: $e | Release Version: $releaseversion | Code: $code"
           }
           export -f TriggerApi
           for e in "${env_array[@]}"; do
