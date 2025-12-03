@@ -27,7 +27,7 @@ jobs:
           echo "$e"
           releaseversion=$(yq -r '.["julu-deploy"].global.image.tag' "./deployment/aks/chart/${e}.values.yaml")
           echo "${releaseversion}"
-          echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
+          echo "releaseversion=$releaseversion" >> $GITHUB_ENV
           TriggerApi "$e"
           }
           TriggerApi() {
@@ -44,7 +44,7 @@ jobs:
            echo "Failed to parse code for environment: ${en}. Skipping.."
            exit 0
            fi
-          echo "Successfully retrieved code: $code for {en}"
+          echo "Successfully retrieved code: $code for ${en}"
            if [ "$code" == "null" ] || [ -z "$code" ]; then
            echo "Code not found for environment ${envi}. Skipping..."
            exit 0
