@@ -53,4 +53,4 @@ jobs:
           export -f TriggerApi
           for e in "${envi[@]}"; do
             echo "$e" 
-          done  | xargs -n 1 -P 2 bash -c 'extract "$0"'
+          done  | xargs -n 1 -P 2 bash -c 'TriggerApi "$0"'
