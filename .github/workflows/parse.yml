@@ -16,7 +16,7 @@ jobs:
        - name: Extract release version & Trigger API using POST Request
          run: |
           set -e  # Exit on error
-          declare -A envi=(usuat,euuat) # declare Array
+          envi=("usuat" "euuat") # declare Array
           extract() {
           # Convert YAML to JSON and extract the tag
           local e="$1"
