@@ -1,0 +1,7 @@
+julu-deploy:
+  global:
+    env: usuat
+    clusterName: BAGHA-01-CC
+    image:
+      # Update the image tag here to deploy a specific version of the application
+      tag: 2512.1.8
