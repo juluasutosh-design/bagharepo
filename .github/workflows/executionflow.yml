@@ -14,7 +14,7 @@ jobs:
           
   second-job:
     needs: tkn
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: my second
         run:  |
