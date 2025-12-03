@@ -4,10 +4,15 @@ on:
   workflow_dispatch:
 jobs:  
   portal-update:
-      runs-on: 1-core
+      runs-on: ubuntu-latest
       steps:
        - name: Checkout repo
          uses: actions/checkout@v5
+       - name: Install jq and yq
+         run:  |
+               sudo apt-get update
+               sudo apt-get install -y jq 
+               sudo apt-get install -y yq
        - name: Extract release version & Trigger API using POST Request
          run: |
           set -e  # Exit on error
