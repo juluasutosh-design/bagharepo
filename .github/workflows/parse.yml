@@ -7,20 +7,24 @@ jobs:
       runs-on: ubuntu-latest
       steps:
        - name: Checkout repo
-         uses: actions/checkout@v5
+         uses: actions/checkout@v4
+         with:
+           path: ${{ github.workspace }}/my_repo
+         
        - name: Install jq and yq
          run:  |
                sudo apt-get update
                sudo apt-get install -y jq 
                sudo apt-get install -y yq
        - name: Extract release version & Trigger API using POST Request
+         working-directory: ${{ github.workspace }}/my_repo
          run: |
           set -e  # Exit on error
           envi=("usuat" "euuat") # declare Array
           extract() {
           # Convert YAML to JSON and extract the tag
           local e="$1"
-          echo "starting"
+          echo "$e"
           releaseversion=$(yq eval -j "./deployment/aks/chart/${e}.values.yaml" | jq -r '.["niq-deploy"].global.image.tag')
           echo "${releaseversion}"
           echo "releaseversion=$releaseversion" >> "$GITHUB_ENV"
