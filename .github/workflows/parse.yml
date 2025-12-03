@@ -40,7 +40,7 @@ jobs:
            fi
           echo "Successfully read portal-codes.json"
            releaseversion="${{ env.releaseversion }}"
-          if ! code=$(echo "$portal_codes" | jq -r ".{en}" 2>/dev/null); then
+          if ! code=$(echo "$portal_codes" | jq -r ".${en}" 2>/dev/null); then
            echo "Failed to parse code for environment: ${en}. Skipping.."
            exit 0
            fi
