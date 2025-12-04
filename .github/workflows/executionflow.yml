@@ -6,28 +6,30 @@ on:
 
 jobs:
   tkn:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: my first
         run:  |
-          echo "Bagha" >> ./mylognew.txt
+          mkdir output
+          echo "Bagha" >> ./output/mylognew.txt
       - name: upload
         uses: actions/upload-artifact@v4
         with:
           name: all-output
-          path: ./mylognew.txt
+          path: ./output/mylognew.txt
   second-job:
     needs: tkn
     runs-on: ubuntu-latest
     steps:
       - name: my second
         run:  |
+          mkdir output
           echo "sibun" >> ./mylog.txt
       - name: upload
         uses: actions/upload-artifact@v4
         with:
           name: all-output
-          path: ./mylog.txt
+          path: ./output/mylog.txt
   third-job:
     needs: [tkn , second-job]
     if: ${{ failure () || cancelled () }}
