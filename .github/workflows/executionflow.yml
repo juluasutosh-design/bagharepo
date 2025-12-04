@@ -1,54 +1,57 @@
+
 name: job execution flow
 
 on:
   workflow_dispatch:
 
-
 jobs:
   tkn:
     runs-on: ubuntu-latest
     steps:
-      - name: my first
-        run:  |
-          mkdir output
-          echo "Bagha" >> ./output/mylognew.txt
-      - name: upload
+      - name: Create output and write first log
+        run: |
+          mkdir -p output
+          echo "3" >> ./output/mylognew.txt
+      - name: Upload first artifact
         uses: actions/upload-artifact@v4
         with:
           name: my-first-artifact
           path: ./output/mylognew.txt
+
   second-job:
     needs: tkn
     runs-on: ubuntu-latest
     steps:
-      - name: my-second
-        run:  |
-          mkdir output
-          echo "sibun" >> ./output/mylog.txt
-      - name: upload
+      - name: Create output and write second log
+        run: |
+          mkdir -p output
+          echo "2" >> ./output/mylog.txt
+      - name: Upload second artifact
         uses: actions/upload-artifact@v4
         with:
           name: my-second-artifact
           path: ./output/mylog.txt
+
   third-job:
-    needs: [tkn , second-job]
+    needs: [tkn, second-job]
     runs-on: ubuntu-latest
     steps:
-      - name: download
-        uses: actions/download-artifact@v5
-        with:  
-          name:  |
-            my-first-artifact
-            my-second-artifact
+      # Option A: Use pattern + merge-multiple to download both artifacts into the same folder
+      - name: Download both artifacts (merged)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: my-*-artifact
           path: ./output
-      - name: upload
+          merge-multiple: true
+
+      # Option B (alternative): Download each artifact separately
+
+      - name: Upload combined output
         uses: actions/upload-artifact@v4
         with:
           name: all-output
           path: ./output
-      - name: my third
-        run:  |
-          echo "julusibun"
-          
-  
-  
+
+      - name: Final message
+        run: |
+          echo "1 - workflow completed"
