@@ -37,9 +37,9 @@ jobs:
       - name: download
         uses: actions/download-artifact@v4
         with:  
-            name:  |
-              my-first
-              my-second
+          name:  |
+            my-first
+            my-second
             path:  ./output
       - name: upload
         uses: actions/upload-artifact@v4
