@@ -10,16 +10,24 @@ jobs:
     steps:
       - name: my first
         run:  |
-          echo "Bagha"
-          
+          echo "Bagha" >> ./mylognew.txt
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-output
+          path: ./mylognew.txt
   second-job:
     needs: tkn
     runs-on: ubuntu-latest
     steps:
       - name: my second
         run:  |
-          echo "sibun"
-          exit 1
+          echo "sibun" >> ./mylog.txt
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-output
+          path: ./mylog.txt
   third-job:
     needs: [tkn , second-job]
     if: ${{ failure () || cancelled () }}
