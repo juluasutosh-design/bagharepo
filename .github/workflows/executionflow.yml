@@ -24,7 +24,7 @@ jobs:
       - name: my second
         run:  |
           mkdir output
-          echo "sibun" >> ./mylog.txt
+          echo "sibun" >> ./ouput/mylog.txt
       - name: upload
         uses: actions/upload-artifact@v4
         with:
