@@ -32,7 +32,6 @@ jobs:
           path: ./output/mylog.txt
   third-job:
     needs: [tkn , second-job]
-    if: ${{ failure () || cancelled () }}
     runs-on: ubuntu-latest
     steps:
       - name: download
