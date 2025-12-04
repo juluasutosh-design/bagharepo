@@ -42,7 +42,7 @@ jobs:
               my-first
               my-second
             path:  ./output
-      - name:: upload
+      - name: upload
         uses: actions/upload-artifact
         with:
           name: all-output
