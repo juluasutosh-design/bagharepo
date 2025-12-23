@@ -17,7 +17,7 @@ jobs:
           echo "env set"
   new-set:
     runs-on: ubuntu-latest
-    if: inputs.your_env == 'usuat'
+    if: ${{ inputs.your_env == 'usuat' }}
     steps:
       - name: set env new
         run:  |
