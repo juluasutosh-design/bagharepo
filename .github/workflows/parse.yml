@@ -24,7 +24,7 @@ jobs:
           env is "skipped"
   portal-update:
       runs-on: ubuntu-latest
-      if: ${{ needs.new-set.results == 'skipped'}}
+      if: ${{ needs.new-set.result == 'skipped' }}
       steps:
        - name: Checkout repo
          uses: actions/checkout@v4
