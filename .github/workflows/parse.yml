@@ -6,7 +6,9 @@ on:
       environment:
         description: provide your env
         type: choice
+        default: ''
         options: 
+          - ''
           - 'usuat,euuat'
       comb_environment:
         description: provide your env
