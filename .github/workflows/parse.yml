@@ -3,29 +3,32 @@ name: Parse
 on:
   workflow_dispatch:
     inputs:
-      your_env:
+      environment:
         description: provide your env
         type: choice
         options: 
-          - 'usuat'
+          - 'usuat,euuat'
+      comb_environment:
+        description: provide your env
+        
+          
 jobs:
-  set-env:
+  switch-usuat:
     runs-on: ubuntu-latest
     steps:
       - name: set env
         run: |
           echo "env set"
-  new-set:
+  switch-euuat:
     runs-on: ubuntu-latest
-    if: ${{ inputs.your_env != 'usuat' }}
     steps:
       - name: set env new
         run:  |
-          echo "skipped"
+          exit 1
   portal-update:
       runs-on: ubuntu-latest
-      needs: [set-env,new-set]
-      if: always() && needs.new-set.result != 'failure'
+      needs: [switch-usuat,switch-euuat]
+      if: always()
       steps:
        - name: Checkout repo
          uses: actions/checkout@v4
@@ -67,7 +70,15 @@ jobs:
            fi
           echo "Environment: $e | Release Version: $releaseversion | Code: $code"
           }
+          IFS=',' read -ra array <<< "${{ inputs.environment || inputs.multiple_environments }}"
           export -f TriggerApi
-          for e in "${env_array[@]}"; do
+          for e in ${!array[@]}; do
+            if ${{ needs.switch-${array[$e]}.result }} == 'failure'; then
+              echo "Skipping portal update for environment: ${array[$e]} due to failure in job switch-${array[$e]}."
+              unset 'array[$e]'
+            fi
+          done
+          array=(${array[@]})
+          for e in "${array[@]}"; do
             echo "$e" 
           done  | xargs -n 1 -P 2 bash -c 'TriggerApi "$0"'
