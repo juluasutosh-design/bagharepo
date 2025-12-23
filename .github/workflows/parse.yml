@@ -72,17 +72,18 @@ jobs:
           }
           IFS=',' read -ra array <<< "${{ inputs.environment || inputs.multiple_environments }}"
           export -f TriggerApi
+          myarr=()
           for e in ${!array[@]}; do
             echo "the env is $e"
-            if [ ${{ needs.switch-usuat.result }} == 'failure' ] && [ '${array[$e]}' == 'usuat' ]; then
+            if ${{ needs.switch-usuat.result }} == 'failure'  && '${array[$e]}' == 'usuat' ; then
               echo "Skipping portal update for environment: usuat due to failure in job switch-${array[$e]}."
               unset 'array[$e]'
-            if [ ${{ needs.switch-euuatuat.result }} == 'failure' ] && [ '${array[$e]}' == 'euuat' ]; then
+            if  ${{ needs.switch-euuatuat.result }} == 'failure'  && '${array[$e]}' == 'euuat' ; then
               echo "Skipping portal update for environment: euuat due to failure in job switch-${array[$e]}."
               unset 'array[$e]'
             fi
-           done
-          array=(${array[@]})
-          for e in "${array[@]}"; do
+          done
+          myarray=(${array[@]})
+          for e in "${myarray[@]}"; do
             echo "$e" 
           done  | xargs -n 1 -P 2 bash -c 'TriggerApi "$0"'
