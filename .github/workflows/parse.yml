@@ -74,7 +74,7 @@ jobs:
           export -f TriggerApi
           for e in ${!array[@]}; do
             env=${array[$e]}
-            if ${{ needs.switch-$env.result }} == 'failure'; then
+            if needs.switch-$env.result  == 'failure'; then
               echo "Skipping portal update for environment: ${array[$e]} due to failure in job switch-${array[$e]}."
               unset 'array[$e]'
             fi
