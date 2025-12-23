@@ -17,15 +17,14 @@ jobs:
           echo "env set"
   new-set:
     runs-on: ubuntu-latest
-    if: ${{ inputs.your_env != 'usuat' }}
     steps:
       - name: set env new
         run:  |
-          env is "skipped"
+          exit 1
   portal-update:
       runs-on: ubuntu-latest
       needs: [set-env,new-set]
-      if: always()
+      if: always() || needs.new-set.result != 'failed'
       steps:
        - name: Checkout repo
          uses: actions/checkout@v4
