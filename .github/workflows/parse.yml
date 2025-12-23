@@ -73,7 +73,8 @@ jobs:
           IFS=',' read -ra array <<< "${{ inputs.environment || inputs.multiple_environments }}"
           export -f TriggerApi
           for e in ${!array[@]}; do
-            if ${{ needs.switch-${array[$e]}.result }} == 'failure'; then
+            env=${array[$e]}
+            if ${{ needs.switch-$env.result }} == 'failure'; then
               echo "Skipping portal update for environment: ${array[$e]} due to failure in job switch-${array[$e]}."
               unset 'array[$e]'
             fi
