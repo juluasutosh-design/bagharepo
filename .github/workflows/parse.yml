@@ -81,7 +81,7 @@ jobs:
               echo "Skipping portal update for environment: euuat due to failure in job switch-${array[$e]}."
               unset 'array[$e]'
             fi
-          done
+           done
           array=(${array[@]})
           for e in "${array[@]}"; do
             echo "$e" 
