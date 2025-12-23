@@ -52,7 +52,7 @@ jobs:
           # Convert YAML to JSON and extract the tag
           local e="$1"
           echo "$e"
-          releaseversion=$(yq -r '.["julu-deploy"].global.image.tag' "./deployment/aks/chart/${e}.values.yaml")
+          releaseversion=$(yq -r '.["julu-cname"].version' "./deployment/aks/chart/${e}.values.yaml")
           echo "${releaseversion}"
           echo "Initiating Portal update through API"
           portal_codes='${{ vars.CODES_JSON }}'
