@@ -74,7 +74,7 @@ jobs:
           export -f TriggerApi
           for e in ${!array[@]}; do
             echo "the env is $e"
-            if [ "${{ needs.switch-usuat.result }}" == "failure" ]  && [ "${array[$e]}" == "usuat" ]]; then
+            if [ "${{ needs.switch-usuat.result }}" == "failure" ]  && [ "${array[$e]}" == "usuat" ]; then
               echo "Skipping portal update for environment: usuat due to failure in job switch-${array[$e]}."
               unset 'array[$e]'
             elif [ "${{ needs.switch-euuat.result }}" == "failure" ]  && [ "${array[$e]}" == "euuat" ]; then
