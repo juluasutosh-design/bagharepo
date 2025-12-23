@@ -77,7 +77,7 @@ jobs:
             if [ "${{ needs.switch-usuat.result }}" == "failure" ]  && [ "${array[$e]}" == "usuat" ]]; then
               echo "Skipping portal update for environment: usuat due to failure in job switch-${array[$e]}."
               unset 'array[$e]'
-            elif [[ "${{ needs.switch-euuatuat.result }}" == "failure" ]]  && [[ "${array[$e]}" == "euuat" ]]; then
+            elif [ "${{ needs.switch-euuatuat.result }}" == "failure" ]  && [ "${array[$e]}" == "euuat" ]; then
               echo "Skipping portal update for environment: euuat due to failure in job switch-${array[$e]}."
               unset 'array[$e]'
             fi
