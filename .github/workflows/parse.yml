@@ -22,6 +22,7 @@ jobs:
       env_array: ${{ steps.max.outputs.env_array}}
     steps:
       - name: max
+        id: max
         run:  |
           echo "job 1"
           if [[ inputs.environment == '' ]]; then 
