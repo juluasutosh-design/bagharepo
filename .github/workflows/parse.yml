@@ -108,7 +108,7 @@ jobs:
            fi
           echo "Environment: $e | Release Version: $releaseversion | Code: $code"
           }
-          IFS=',' read -ra array <<< "${{ inputs.environment || inputs.multiple_environments }}"
+          IFS=',' read -ra array <<< "${{ needs.fetch-inputs.ouputs.env_array }}"
           export -f TriggerApi
           for e in ${!array[@]}; do
             echo "the env is $e"
