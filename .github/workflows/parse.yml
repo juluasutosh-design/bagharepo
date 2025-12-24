@@ -18,6 +18,8 @@ on:
 jobs:
   fetch-inputs:
     runs-on: ubuntu-latest
+    outputs:
+      env_array: ${{ steps.max.outputs.env_array}}
     steps:
       - name: max
         run:  |
@@ -27,11 +29,11 @@ jobs:
           else
             envs=${{ inputs.environment }}
           fi  
-          echo "$envs" | tr ',' '\n' | jq -R . | jq -cs .
-          echo "$envs"
+          envs=$(echo "$envs" | tr ',' '\n' | jq -R . | jq -cs .)
+          echo "env_array=$envs" >> "$GITHUB_OUTPUT"
   validate-usuat:
     needs: [fetch-inputs]
-    if: ${{ inputs.environment == 'usuat'}}
+    if: ${{ contains(fromJson(needs.fetch-inputs.outputs.env_array),'usuat')}}
     runs-on: ubuntu-latest
     steps:
       - name: validate
@@ -39,7 +41,7 @@ jobs:
           echo "validate"
   switch-usuat:
     needs: [validate-usuat]
-    if: ${{ inputs.environment == 'usuat'}}
+    if: ${{ contains(fromJson(needs.fetch-inputs.outputs.env_array),'usuat')}}
     runs-on: ubuntu-latest
     steps:
       - name: set env
@@ -47,7 +49,7 @@ jobs:
           echo "env set"
   validate-euuat:
     needs: [fetch-inputs]
-    if: ${{ inputs.environment == 'euuat'}}
+    if: ${{ contains(fromJson(needs.fetch-inputs.outputs.env_array),'euuat')}}
     runs-on: ubuntu-latest
     steps:
       - name: validate
@@ -56,7 +58,7 @@ jobs:
   switch-euuat:
     runs-on: ubuntu-latest
     needs: [validate-euuat]
-    if: ${{ inputs.environment == 'euuat'}}
+    if: ${{ contains(fromJson(needs.fetch-inputs.outputs.env_array),'euuat')}}
     steps:
       - name: set env new
         run:  |
