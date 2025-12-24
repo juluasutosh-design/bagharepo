@@ -9,13 +9,21 @@ on:
         default: ''
         options: 
           - ''
+          - 'usuat'
           - 'usuat,euuat'
       comb_environment:
         description: provide your env
         
           
 jobs:
+  max-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: max
+        run:  |
+          echo "job 1"
   switch-usuat:
+    needs: [max-job]
     runs-on: ubuntu-latest
     steps:
       - name: set env
@@ -23,13 +31,14 @@ jobs:
           echo "env set"
   switch-euuat:
     runs-on: ubuntu-latest
+    needs: [max-job]
     steps:
       - name: set env new
         run:  |
           exit 1
   portal-update:
       runs-on: ubuntu-latest
-      needs: [switch-usuat,switch-euuat]
+      needs: [max-job,switch-usuat,switch-euuat]
       if: always()
       steps:
        - name: Checkout repo
