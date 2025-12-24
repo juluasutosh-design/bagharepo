@@ -27,7 +27,7 @@ jobs:
           else
             envs=${{ inputs.environment }}
           fi  
-          echo "$envs" | tr ',' '\n' | jq -R .
+          echo "$envs" | tr ',' '\n' | jq -R . | jq -s .
           echo "$envs"
   validate-usuat:
     needs: [fetch-inputs]
