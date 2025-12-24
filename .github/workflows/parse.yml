@@ -22,6 +22,13 @@ jobs:
       - name: max
         run:  |
           echo "job 1"
+          if [[ inputs.environment == '' ]]; then 
+            envs=${{ inputs.comb_environment }}
+          else
+            envs=${{ inputs.environment }}
+          fi  
+          echo "$envs" | tr ',' '\n' | jq -R .
+          echo "$envs"
   validate-usuat:
     needs: [fetch-inputs]
     if: ${{ inputs.environment == 'usuat'}}
@@ -74,7 +81,6 @@ jobs:
          working-directory: ${{ github.workspace }}/my_repo
          run: |
           set -e  # Exit on error
-          env_array=("usuat" "euuat") # declare Array
           TriggerApi() {
           # Convert YAML to JSON and extract the tag
           local e="$1"
