@@ -57,7 +57,7 @@ jobs:
     steps:
       - name: validate
         run:  |
-          echo "validate"        
+          echo "valida"      
   switch-euuat:
     runs-on: ubuntu-latest
     needs: [fetch-inputs,validate-euuat]
@@ -65,7 +65,7 @@ jobs:
     steps:
       - name: set env new
         run:  |
-          echo "job3"
+          exit 1
   portal-update:
       runs-on: ubuntu-latest
       needs: [fetch-inputs,switch-usuat,switch-euuat]
