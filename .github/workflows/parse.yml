@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: validate
         run:  |
-          echo "validate"
+          exit 1
   switch-usuat:
     needs: [fetch-inputs,validate-usuat]
     if: ${{ contains(fromJson(needs.fetch-inputs.outputs.env_array),'usuat')}}
@@ -122,6 +122,7 @@ jobs:
               unset 'array[$e]'
             fi
           done
+          if ${#array[@]} == 0 && echo "The environment array is having values"  || { echo "The environment array is not holding any values"; exit 1 }
           myarray=(${array[@]})
           for e in "${myarray[@]}"; do
             echo "$e" 
