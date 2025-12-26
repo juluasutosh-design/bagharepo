@@ -13,6 +13,8 @@ on:
           - 'usuat,euuat'
       comb_environment:
         description: provide your env
+      Release_ver:
+        description: provide your ver  
         
           
 jobs:
@@ -88,7 +90,7 @@ jobs:
           # Convert YAML to JSON and extract the tag
           local e="$1"
           echo "$e"
-          releaseversion=$(yq -r '.["julu-cname"].version' "./deployment/aks/chart/${e}.values.yaml")
+          releaseversion=${{ inputs.release_ver }}
           echo "${releaseversion}"
           echo "Initiating Portal update through API"
           portal_codes='${{ vars.CODES_JSON }}'
