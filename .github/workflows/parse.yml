@@ -122,7 +122,7 @@ jobs:
               unset 'array[$e]'
             fi
           done
-          [ ${#array[@]} == 0 ] && echo "The environment array is having values"  || { echo "The environment array is not holding any values"; exit 1 }
+          [[ echo "${#array[@]}" == 0 ]] && echo "The environment array is having values"  || { echo "The environment array is not holding any values"; exit 1 }
           myarray=(${array[@]})
           for e in "${myarray[@]}"; do
             echo "$e" 
