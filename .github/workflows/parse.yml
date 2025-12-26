@@ -122,8 +122,8 @@ jobs:
               unset 'array[$e]'
             fi
           done
-          [ ${#array[@]} == 0 ] && echo "The environment array is having values"  || { echo "The environment array is not holding any values"; exit 1 }
           myarray=(${array[@]})
+          [ ${#myarray[@]} == 0 ] && echo "The environment array is having values"  ||  echo "The environment array is not holding any values"; exit 1 
           for e in "${myarray[@]}"; do
             echo "$e" 
           done  | xargs -n 1 -P 2 bash -c 'TriggerApi "$0"'
