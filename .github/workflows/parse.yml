@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: validate
         run:  |
-          exit 1
+          echo "Tiger"
   switch-usuat:
     needs: [fetch-inputs,validate-usuat]
     if: ${{ contains(fromJson(needs.fetch-inputs.outputs.env_array),'usuat')}}
@@ -57,7 +57,7 @@ jobs:
     steps:
       - name: validate
         run:  |
-          exit 1  
+          echo "Bagha"
   switch-euuat:
     runs-on: ubuntu-latest
     needs: [fetch-inputs,validate-euuat]
@@ -123,7 +123,7 @@ jobs:
             fi
           done
           myarray=(${array[@]})
-          [ ${#myarray[@]} != 0 ]  && echo "The environment array is having values" || 2> /dev/null ; echo "The environment array is not holding any values" 
+          [ ${#myarray[@]} != 0 ]  && echo "The environment array is having values" || echo "The environment array is not holding any values"; exit 1
           for e in "${myarray[@]}"; do
             echo "$e" 
           done  | xargs -n 1 -P 2 bash -c 'TriggerApi "$0"'
