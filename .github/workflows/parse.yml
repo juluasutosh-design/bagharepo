@@ -127,4 +127,4 @@ jobs:
           [ $len != 0 ]  && echo "The environment array is having values" || { echo "The environment array is not holding any values"; exit 1; }
           for e in "${myarray[@]}"; do
             echo "$e" 
-          done  | xargs -n 1 -P len bash -c 'TriggerApi "$0"'
+          done  | xargs -n 1 -P $len bash -c 'TriggerApi "$0"'
