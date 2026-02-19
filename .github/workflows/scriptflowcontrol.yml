@@ -9,7 +9,7 @@ on:
         type: string
 jobs:
   Select:
-    if: ${{ inputs.IGNORE_SCRIPTS == 'Select' && cancelled() || success() }}
+    if: contains(fromJson('["Select"]'), inputs.IGNORE_SCRIPTS ) && cancelled() || success()
     runs-on: ubuntu-latest
     steps:
       - name: echo
