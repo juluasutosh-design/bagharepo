@@ -38,6 +38,14 @@ jobs:
       - name: echo
         run:  |
           echo -e "\e[32>mSelect ran\e[0m"
+  Preview_step2:
+    needs:  [ Select, Preview_step1] 
+    if: ${{ inputs.Preview }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: echo
+        run:  |
+          echo -e "\e[32>mSelect ran\e[0m"          
   mail_success:
     needs: [Select,Preview_step1]
     runs-on: ubuntu-latest
