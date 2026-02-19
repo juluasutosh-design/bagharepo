@@ -45,7 +45,7 @@ jobs:
     steps:
       - name: control
         run:  |
-          if [ "${{ needs.Select.result }}" == "failed" ]  || [ "${{ needs.Preview_step1.result }}" == "failed" ]; then
+          if [ "${{ needs.Select.result }}" == "failure" ]  || [ "${{ needs.Preview_step1.result }}" == "failure" ]; then
             exit 0
           fi  
       - name: echo mail
