@@ -12,6 +12,10 @@ on:
         description: "scipt"
         type: boolean
         default: false
+      Preview_2:
+        description: "scipt_2"
+        type: boolean
+        default: false  
 jobs:
       
   Select:
