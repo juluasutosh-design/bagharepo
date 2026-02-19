@@ -20,7 +20,7 @@ jobs:
 
   Preview_step1:
     needs:  [ Select ]
-    if: always() && !contains(fromJson('["Select","Preview_step1"]'), inputs.IGNORE_SCRIPTS )
+    if: always() && !contains(fromJson('["Preview_step1"]'), inputs.IGNORE_SCRIPTS )
     runs-on: ubuntu-latest
     steps:
       - name: echo
