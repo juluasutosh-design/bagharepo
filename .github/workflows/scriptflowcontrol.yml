@@ -24,7 +24,7 @@ jobs:
       
   Select:
     needs: [first]
-    if: always() && !contains(fromJson('["Select"]'), needs.first.outputs.scripts_array )
+    if: always() && !contains(fromJson(needs.first.outputs.scripts_array), 'Select'  )
     runs-on: ubuntu-latest
     steps:
       - name: print
@@ -41,7 +41,7 @@ jobs:
 
   Preview_step1:
     needs:  [ Select, first ]
-    if: always() && !contains(fromJson('["Preview_step1"]'), needs.first.outputs.scripts_array )
+    if: always() && !contains(fromJson('[needs.first.outputs.scripts_array]'), 'Preview_step1' )
     runs-on: ubuntu-latest
     steps:
       - name: echo
