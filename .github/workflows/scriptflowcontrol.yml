@@ -46,7 +46,8 @@ jobs:
       - name: control
         run:  |
           if [ "${{ needs.Select.result }}" == "failure" ]  || [ "${{ needs.Preview_step1.result }}" == "failure" ]; then
-            exit 0
+            echo "Aborting the job"
+            exit 1
           fi  
       - name: echo mail
         run:  |
