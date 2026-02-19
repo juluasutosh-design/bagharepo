@@ -10,7 +10,7 @@ on:
 jobs:
   
   Select:
-    if: always() && !contains(fromJson('["Select","Preview_step1"]'), inputs.IGNORE_SCRIPTS )
+    if: always() && !contains(fromJson('["Select"]'), inputs.IGNORE_SCRIPTS )
     runs-on: ubuntu-latest
     steps:
       - name: echo
