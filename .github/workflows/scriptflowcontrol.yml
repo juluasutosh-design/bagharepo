@@ -40,8 +40,13 @@ jobs:
   mail_success:
     needs: [Select,Preview_step1]
     runs-on: ubuntu-latest
-    if: success()
+    if: always()
     steps:
+      - name: control
+        run:  |
+          if [ "${{ needs.Select.result }}" == "failed" ]  || [ "${{ needs.Preview_step1.result }}" == "failed" ]; then
+            exit
+          fi  
       - name: echo mail
         run:  |
           echo "sending mail"
