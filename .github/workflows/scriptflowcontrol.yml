@@ -15,7 +15,7 @@ on:
 jobs:
       
   Select:
-    if: always() && ${{ inputs.Select }}
+    if: ${{ inputs.Select }}
     runs-on: ubuntu-latest
     steps:
       - name: print
@@ -27,12 +27,11 @@ jobs:
       - name: echo
         run:  |
           echo -e "\e[31>mSelect ran\e[0m"
-          exit 2
 
 
   Preview_step1:
-    needs:  [ Select]
-    if: always() && ${{ inputs.Preview }}
+    needs:  [ Select] 
+    if: ${{ inputs.Preview }}
     runs-on: ubuntu-latest
     steps:
       - name: echo
