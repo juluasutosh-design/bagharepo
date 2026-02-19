@@ -50,6 +50,7 @@ jobs:
             exit 1
           fi  
       - name: echo mail
+        if: success()
         run:  |
           echo "sending mail"
   mail_failure:
