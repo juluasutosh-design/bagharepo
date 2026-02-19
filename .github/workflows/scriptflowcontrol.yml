@@ -40,7 +40,7 @@ jobs:
   mail_success:
     needs: [Preview_step1,Select]
     runs-on: ubuntu-latest
-    if: always
+    if: always()
     steps:
       - name: echo mail
         run:  |
