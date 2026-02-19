@@ -19,7 +19,7 @@ jobs:
 
   Preview_step1:
     needs:  [ Select ]
-    if: contains(fromJson('["Preview_step1"]'), inputs.IGNORE_SCRIPTS ) && cancelled() || success()
+    if: always() && inputs.IGNORE_SCRIPTS != 'Preview_step1'
     runs-on: ubuntu-latest
     steps:
       - name: echo
