@@ -6,13 +6,15 @@ on:
     inputs:
       IGNORE_SCRIPTS:
         description: "Provide Scripts which need to be ignored during execution"
-        type: string
 jobs:
   
   Select:
     if: always() && !contains(fromJson('["Select"]'), inputs.IGNORE_SCRIPTS )
     runs-on: ubuntu-latest
     steps:
+      - name: print
+        run:  |
+          echo fromJson(inputs.IGNORE_SCRIPTS)
       - name: echo
         run:  |
           echo -e "\e[31>mSelect ran\e[0m"
