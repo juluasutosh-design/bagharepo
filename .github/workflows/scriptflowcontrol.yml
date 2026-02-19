@@ -9,7 +9,7 @@ on:
         type: string
 jobs:
   Select:
-    if: ${{ inputs.IGNORE_SCRIPT == 'Select' && cancelled() || success() }}
+    if: ${{ inputs.IGNORE_SCRIPTS == 'Select' && cancelled() || success() }}
     runs-on: ubuntu-latest
     steps:
       - name: echo
