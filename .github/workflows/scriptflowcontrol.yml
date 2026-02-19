@@ -15,7 +15,7 @@ on:
 jobs:
       
   Select:
-    if: ${{ inputs.Select }}
+    if: always() && ${{ inputs.Select }}
     runs-on: ubuntu-latest
     steps:
       - name: print
@@ -32,7 +32,7 @@ jobs:
 
   Preview_step1:
     needs:  [ Select]
-    if: ${{ inputs.Preview }}
+    if: always() && ${{ inputs.Preview }}
     runs-on: ubuntu-latest
     steps:
       - name: echo
