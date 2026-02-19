@@ -49,7 +49,8 @@ jobs:
     steps:
       - name: echo
         run:  |
-          echo -e "\e[32>mSelect ran\e[0m"          
+          echo -e "\e[32>mSelect ran\e[0m" 
+          exit 1
   mail_success:
     needs: [Select,Preview_step1,Preview_step2]
     runs-on: ubuntu-latest
@@ -63,8 +64,12 @@ jobs:
             exit 1
           fi  
       - name: echo mail
+        if: failure()
         run:  |
           echo "sending mail"
+      - name: echo new
+        run:  |
+          echo new
   mail_failure:
     needs: [Preview_step1,Select,Preview_step2]
     runs-on: ubuntu-latest
