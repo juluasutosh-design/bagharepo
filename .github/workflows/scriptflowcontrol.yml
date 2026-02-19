@@ -27,6 +27,7 @@ jobs:
       - name: echo
         run:  |
           echo -e "\e[31>mSelect ran\e[0m"
+          exit 2
 
 
   Preview_step1:
