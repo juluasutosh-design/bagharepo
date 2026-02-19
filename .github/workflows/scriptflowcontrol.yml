@@ -46,7 +46,7 @@ jobs:
       - name: control
         run:  |
           if [ "${{ needs.Select.result }}" == "failed" ]  || [ "${{ needs.Preview_step1.result }}" == "failed" ]; then
-            exit
+            exit 0
           fi  
       - name: echo mail
         run:  |
