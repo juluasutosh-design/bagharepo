@@ -51,7 +51,7 @@ jobs:
         run:  |
           echo -e "\e[32>mSelect ran\e[0m"          
   mail_success:
-    needs: [Select,Preview_step1]
+    needs: [Select,Preview_step1,Preview_step2]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -66,7 +66,7 @@ jobs:
         run:  |
           echo "sending mail"
   mail_failure:
-    needs: [Preview_step1,Select]
+    needs: [Preview_step1,Select,Preview_step2]
     runs-on: ubuntu-latest
     if: failure() || cancelled()
     steps:
