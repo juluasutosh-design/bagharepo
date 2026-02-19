@@ -29,7 +29,7 @@ jobs:
     steps:
       - name: print
         run:  |
-          array=(${{ needs.first.outputs.scripts_array }})
+          array=${{ needs.first.outputs.scripts_array }}
           for i in "${array[@]}"
             do
               echo $i
