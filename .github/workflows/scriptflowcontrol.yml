@@ -16,8 +16,9 @@ jobs:
         id: jq
         run:  |
           if [ -n ${{ inputs.IGNORE_SCRIPTS }} ]; then
-            IFS=',' read -ra array <<< "${{ inputs.IGNORE_SCRIPTS }}"
-            echo "Script_array=$array" >> "$GITHUB_OUTPUT"
+            array=${{ inputs.IGNORE_SCRIPTS }}
+            json_array=$(echo "array" | tr ',' '\n' | jq -R . | jq -cs .)
+            echo "Script_array=$json_array" >> "$GITHUB_OUTPUT"
           fi  
       
   Select:
