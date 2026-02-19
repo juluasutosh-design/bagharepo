@@ -4,32 +4,22 @@ name: script-executor
 on:
   workflow_dispatch:
     inputs:
-      IGNORE_SCRIPTS:
+      Select:
         description: "Provide Scripts which need to be ignored during execution"
-        type: string
+        type: boolean
+        default: false
+      Preview:
+        description: "scipt"
+        type: boolean
+        default: false
 jobs:
-  first:
-    runs-on: ubuntu-latest
-    outputs:
-      scripts_array: ${{ steps.jq.outputs.Script_array}}
-    steps:
-      - name: jsonift
-        id: jq
-        run:  |
-          if [ -n ${{ inputs.IGNORE_SCRIPTS }} ]; then
-            array="${{ inputs.IGNORE_SCRIPTS }}"
-            json_array=$(echo "$array" | tr ',' '\n' | jq -R . | jq -cs .)
-            echo "Script_array=$json_array" >> "$GITHUB_OUTPUT"
-          fi  
       
   Select:
-    needs: [first]
-    if: always() && !contains(fromJson(needs.first.outputs.scripts_array), 'Select'  )
+    if: ${{ inputs.Select }}
     runs-on: ubuntu-latest
     steps:
       - name: print
         run:  |
-          array=${{ needs.first.outputs.scripts_array }}
           for i in "${array[@]}"
             do
               echo $i
@@ -40,10 +30,26 @@ jobs:
 
 
   Preview_step1:
-    needs:  [ Select, first ]
-    if: always() && !contains(fromJson(needs.first.outputs.scripts_array), 'Preview_step1' )
+    needs:  [ Select]
+    if: ${{ inputs.Preview }}
     runs-on: ubuntu-latest
     steps:
       - name: echo
         run:  |
           echo -e "\e[32>mSelect ran\e[0m"
+  mail_success:
+    needs: [Preview_step1,Select]
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: echo mail
+        run:  |
+          echo "sending mail"
+  mail_failure:
+    needs: [Preview_step1,Select]
+    runs-on: ubuntu-latest
+    if: failure() || cancelled()
+    steps:
+      - name: echo mail
+        run:  |
+          echo "sending mail"          
