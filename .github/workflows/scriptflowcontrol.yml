@@ -8,8 +8,9 @@ on:
         description: "Provide Scripts which need to be ignored during execution"
         type: string
 jobs:
+  
   Select:
-    if: always() && inputs.IGNORE_SCRIPTS != 'Select'
+    if: always() && !contains(fromJson('["Select","Preview_step1"]'), inputs.IGNORE_SCRIPTS )
     runs-on: ubuntu-latest
     steps:
       - name: echo
@@ -19,7 +20,7 @@ jobs:
 
   Preview_step1:
     needs:  [ Select ]
-    if: always() && inputs.IGNORE_SCRIPTS != 'Preview_step1'
+    if: always() && !contains(fromJson('["Select","Preview_step1"]'), inputs.IGNORE_SCRIPTS )
     runs-on: ubuntu-latest
     steps:
       - name: echo
