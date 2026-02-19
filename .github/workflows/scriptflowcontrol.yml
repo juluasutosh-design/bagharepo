@@ -18,7 +18,7 @@ jobs:
         run:  |
           if [ -n ${{ inputs.IGNORE_SCRIPTS }} ]; then
             array="${{ inputs.IGNORE_SCRIPTS }}"
-            json_array=$(echo "array" | tr ',' '\n' | jq -R . | jq -cs .)
+            json_array=$(echo "$array" | tr ',' '\n' | jq -R . | jq -cs .)
             echo "Script_array=$json_array" >> "$GITHUB_OUTPUT"
           fi  
       
