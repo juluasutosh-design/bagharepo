@@ -17,7 +17,8 @@ jobs:
         run:  |
           if [ -n ${{ inputs.IGNORE_SCRIPTS }} ]; then
             IFS=',' read -ra array <<< "${{ inputs.IGNORE_SCRIPTS }}"
-            json_array=$(echo "${array[@]}" | jq -R . )
+            json_array=$(echo "${array[@]}" | jq -R 'split(",")' )
+            echo "${array[*]}"
             echo "Script_array=$json_array" >> "$GITHUB_OUTPUT"
           fi  
       
