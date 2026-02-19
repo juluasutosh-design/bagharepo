@@ -7,22 +7,36 @@ on:
       IGNORE_SCRIPTS:
         description: "Provide Scripts which need to be ignored during execution"
 jobs:
-  
+  first:
+    runs-on: ubuntu-latest
+    outputs:
+      scripts_array: ${{ steps.jq.outputs.Script_array}}
+    steps:
+      - name: jsonift
+        id: jq
+        run:  |
+          if [ -n ${{ inputs.IGNORE_SCRIPTS }} ]; then
+            IFS=',' read-ra array <<< "${{ inputs.IGNORE_SCRIPTS }}"
+            json_array=$(echo "${array[@]}" | jq -R . )
+            echo "Script_array=$json_array" >> "$GITHUB_OUTPUT"
+          fi  
+      
   Select:
-    if: always() && !contains(fromJson('["Select"]'), inputs.IGNORE_SCRIPTS )
+    needs: [first]
+    if: always() && !contains(fromJson('["Select"]'), needs.first.outputs.scripts_array )
     runs-on: ubuntu-latest
     steps:
       - name: print
         run:  |
-          echo ${{ fromJSON('inputs.IGNORE_SCRIPTS') }}
+          echo "a"
       - name: echo
         run:  |
           echo -e "\e[31>mSelect ran\e[0m"
 
 
   Preview_step1:
-    needs:  [ Select ]
-    if: always() && !contains(fromJson('["Preview_step1"]'), inputs.IGNORE_SCRIPTS )
+    needs:  [ Select, first ]
+    if: always() && !contains(fromJson('["Preview_step1"]'), needs.first.outputs.scripts_array )
     runs-on: ubuntu-latest
     steps:
       - name: echo
