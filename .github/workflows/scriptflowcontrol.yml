@@ -1,0 +1,27 @@
+name: script-executor
+
+
+on:
+  workflow_dispatch:
+    inputs:
+      IGNORE_SCRIPTS:
+        description: "Provide Scripts which need to be ignored during execution"
+        type: string
+jobs:
+  Select:
+    if: contains( fromJson('["Select"]'), inputs.IGNORE_SCRIPTS ) && cancelled() 
+    runs-on: ubuntu-latest
+    steps:
+      - name: echo
+        run:  |
+          echo -e "\e[31>mSelect ran\e[0m"
+
+
+  Preview_step1:
+    needs:  [ Select ]
+    if: contains(fromJson('["Preview_step1"]'), inputs.IGNORE_SCRIPTS ) && cancelled() 
+    runs-on: ubuntu-latest
+    steps:
+      - name: echo
+        run:  |
+          echo -e "\e[32>mSelect ran\e[0m"
