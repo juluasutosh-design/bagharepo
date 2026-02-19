@@ -44,7 +44,7 @@ jobs:
           echo -e "\e[32>mSelect ran\e[0m"
   Preview_step2:
     needs:  [ Preview_step1] 
-    if: ${{ inputs.Preview && always() || cancelled() }}
+    if: ${{ inputs.Preview_2 && always() || cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: echo
