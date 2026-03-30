@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         run:  |
+          ls -l
+          git init
           git branch
       - name: print
         run:  |
