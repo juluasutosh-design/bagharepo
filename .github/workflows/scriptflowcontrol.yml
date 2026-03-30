@@ -31,7 +31,6 @@ jobs:
         run:  |
           pwd
           ls -al
-          git config --global --list
           git branch
       - name: print
         run:  |
