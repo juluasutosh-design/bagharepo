@@ -23,9 +23,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+
+      - name: check
         run:  |
-          ls -l
-          git init
+          pwd
+          ls -al
+          git config 
           git branch
       - name: print
         run:  |
