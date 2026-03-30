@@ -32,6 +32,10 @@ jobs:
           pwd
           ls -al
           git branch
+          git log --oneline
+          git fetch origin ${{ github.ref}}
+          git rebase ${{ github.ref}}
+          git log --oneline
       - name: print
         run:  |
           for i in "${array[@]}"
