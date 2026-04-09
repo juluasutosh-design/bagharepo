@@ -32,8 +32,6 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git branch
-
-          git config -- global --list
           echo "I am bagha" >> myfile.txt
           git add .
           git commit -m "added bagha file"
