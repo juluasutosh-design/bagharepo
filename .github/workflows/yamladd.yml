@@ -24,6 +24,7 @@ workflow_dispatch:
         - usprod,euprod
         - calatamprod,apacprod
         - usprod,euprod,calatamprod,apacprod
+  
 jobs:
   checkout:
     runs-on: ubuntu-latest
@@ -38,7 +39,10 @@ jobs:
    steps:
      - name: Run script
        run:  |
+         IFS=',' read -ra envArray << ${{ inputs.files }}
+         echo "envArray=$envArray" >> $GITHUB_ENV
          npm install yaml
+         node myfile.js
          
    
       
