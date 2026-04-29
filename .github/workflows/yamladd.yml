@@ -1,6 +1,6 @@
 name: Add Yaml
 
-run-name: Add Yaml - ${{ inputs.yaml || inputs.custom_yaml || value_yaml }}
+run-name: Add Yaml - ${{ inputs.yaml || inputs.custom_yaml || inputs.value_yaml }}
 
 workflow_dispatch:
   inputs:
