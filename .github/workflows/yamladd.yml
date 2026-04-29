@@ -47,6 +47,7 @@ jobs:
          IFS=',' read -ra envArray <<< "${{ inputs.files }}"
          echo "envArray=$envArray" >> $GITHUB_ENV
          npm install yaml
+         ls 
          node myfile.js
          
    
