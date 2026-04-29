@@ -2,37 +2,40 @@ name: Add Yaml
 
 run-name: Add Yaml - ${{ inputs.yaml || inputs.custom_yaml || inputs.value_yaml }}
 
-workflow_dispatch:
-  inputs:
-    yaml:
-      type: string
-      description: Provide Yaml structure to be add , Please note top hierchy is set as niq-deploy
-    custom_yaml:
-      type: string
-      description: Provide your custom structure
-    value_yaml:
-      type: string
-      description: Provide a value which you want to override in yaml file
-    files:
-      type: choice
-      description: structure/value to be added to yaml file
-      options:
-        - usuat
-        - euuat
-        - euuat,usuat
-        - ushofix
-        - usprod,euprod
-        - calatamprod,apacprod
-        - usprod,euprod,calatamprod,apacprod
+on:
+  workflow_dispatch:
+    inputs:
+      yaml:
+        type: string
+        description: Provide Yaml structure to be add , Please note top hierchy is set as niq-deploy
+      custom_yaml:
+        type: string
+        description: Provide your custom structure
+      value_yaml:
+        type: string
+        description: Provide a value which you want to override in yaml file
+      files:
+        type: choice
+        description: structure/value to be added to yaml file
+        options:
+          - usuat
+          - euuat
+          - euuat,usuat
+          - ushofix
+          - usprod,euprod
+          - calatamprod,apacprod
+          - usprod,euprod,calatamprod,apacprod
   
 jobs:
   checkout:
     runs-on: ubuntu-latest
-    uses: actions/checkout@v6
+    steps:
+      - uses: actions/checkout@v6
 
   Node:
     runs-on: ubuntu-latest
-    uses: actions/setup-node@v6
+    steps:
+      - uses: actions/setup-node@v6
 
   Script:
    runs-on: ubuntu-latest
