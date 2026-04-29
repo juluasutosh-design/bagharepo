@@ -18,13 +18,13 @@ on:
         type: choice
         description: structure/value to be added to yaml file
         options:
-          - usuat
-          - euuat
-          - euuat,usuat
-          - ushofix
-          - usprod,euprod
-          - calatamprod,apacprod
-          - usprod,euprod,calatamprod,apacprod
+          - 'usuat'
+          - 'euuat'
+          - 'euuat,usuat'
+          - 'ushofix'
+          - 'usprod,euprod'
+          - 'calatamprod,apacprod'
+          - 'usprod,euprod,calatamprod,apacprod'
   
 jobs:
   checkout:
@@ -42,7 +42,7 @@ jobs:
    steps:
      - name: Run script
        run:  |
-         IFS=',' read -ra envArray << ${{ inputs.files }}
+         IFS=',' read -ra envArray <<< "${{ inputs.files }}"
          echo "envArray=$envArray" >> $GITHUB_ENV
          npm install yaml
          node myfile.js
