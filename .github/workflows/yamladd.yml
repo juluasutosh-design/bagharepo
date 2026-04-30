@@ -45,7 +45,6 @@ jobs:
      - name: setting env param
        id: param
        run:  |
-         npm install dot-object
          IFS=',' 
          read -r -a envArray <<< "${{ github.event.inputs.files }}"
          git clone https://github.com/juluasutosh-design/bagharepo.git
