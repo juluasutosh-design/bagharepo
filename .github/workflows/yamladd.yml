@@ -46,6 +46,7 @@ jobs:
    steps:
      - name: Run script
        run:  |
+         cd myRepo
          ls -a
          IFS=',' read -ra envArray <<< "${{ inputs.files }}"
          echo "envArray=$envArray" >> $GITHUB_ENV
