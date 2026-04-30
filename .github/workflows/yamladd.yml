@@ -44,6 +44,8 @@ jobs:
    steps:
      - name: Run script
        run:  |
+         git clone https://github.com/juluasutosh-design/bagharepo.git
+         cd bagharepo
          IFS=',' read -ra envArray <<< "${{ inputs.files }}"
          echo "envArray=$envArray" >> $GITHUB_ENV
          node app.js
