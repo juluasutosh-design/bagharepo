@@ -1,7 +1,6 @@
 console.log("myfile is running....");
 const YAML = require('yaml');
 const fs = require('fs');
-const dot = require('dot-object');
 const myArray = process.argv[2].split(',')
 const yamlVal = process.argv[3]
 const absVal = process.argv[4]
@@ -12,8 +11,7 @@ console.log(process.argv)
 for ( const env of myArray ) {
   const file = fs.readFileSync(`deployment/aks/chart/${env}.values.yaml`,'utf8');
   const config = YAML.parse(file);
-  target = dot.dot(yamlVal)
-  console.log(target);
+  console.log(config['julu-cname.yamlVal']);
   /*
   if ( process.argv.slice(4,5) === 'undefined' && ( process.argv.slice(4,5) ||  process.argv.slice(5,6) )) {
     
