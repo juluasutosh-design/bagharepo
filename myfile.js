@@ -1,13 +1,20 @@
-const YAML = require('yaml');
-const fs = require('fs');
-for ( const env of process.env.envArray ) {
-  try {
-  const file = YAML.parse(fs.readFileSync(`./deployment/aks/chart/${env}.values.yaml`));
-  console.log(file.julu-cname.env);
-  
-}
-  catch error(e) {
-    console.log("No such valid env Selected in Actions Input");
+
+{
+  "name": "node-yaml-project",
+  "version": "1.0.0",
+  "description": "Node.js project with YAML support",
+  "main": "src/myfile.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/myfile.js",
+    "dev": "node src/myfile.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "yaml": "^2.4.5"
+  },
+  "engines": {
+    "node": ">=18"
   }
-};
-    
+}
+``
