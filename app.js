@@ -1,7 +1,7 @@
 console.log("myfile is running....");
 const YAML = require('yaml');
 const fs = require('fs');
-const myArray = process.argv[3]
+const myArray = process.argv[2]
 console.log(myArray)
 /*
 for ( const env of myArray ) {
