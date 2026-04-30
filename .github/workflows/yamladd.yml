@@ -44,7 +44,8 @@ jobs:
    steps:
      - name: Run script
        run:  |
-         npm install
+         npm init -y 
+         npm install yaml
          ls -a
          pwd
          IFS=',' read -ra envArray <<< "${{ inputs.files }}"
