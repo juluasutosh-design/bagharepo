@@ -46,7 +46,7 @@ jobs:
        id: param
        run:  |
          IFS=',' 
-         read -ra envArray <<< "${{ github.event.inputs.files }}"
+         read -r -a envArray <<< "${{ github.event.inputs.files }}"
          git clone https://github.com/juluasutosh-design/bagharepo.git
          cd bagharepo
-         node app.js "$envArray"
+         node app.js "${envArray[@]}"
