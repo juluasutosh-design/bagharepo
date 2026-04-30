@@ -49,4 +49,4 @@ jobs:
          read -r -a envArray <<< "${{ github.event.inputs.files }}"
          git clone https://github.com/juluasutosh-design/bagharepo.git
          cd bagharepo
-         node app.js "${envArray[@]}" "${{ inputs.yaml }}" "${{ inputs.value_yaml }}"
+         node app.js "${{inputs.files}}" "${{ inputs.yaml }}" "${{ inputs.value_yaml }}"
