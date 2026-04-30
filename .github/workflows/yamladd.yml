@@ -44,11 +44,11 @@ jobs:
    steps:
      - name: Run script
        run:  |
+         npm install
          ls -a
          pwd
          IFS=',' read -ra envArray <<< "${{ inputs.files }}"
          echo "envArray=$envArray" >> $GITHUB_ENV
-         npm install yaml
          node myfile.js
          
    
