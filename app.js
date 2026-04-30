@@ -13,8 +13,7 @@ for ( const env of myArray ) {
   const file = fs.readFileSync(`deployment/aks/chart/${env}.values.yaml`,'utf8');
   const config = YAML.parse(file);
   target = dot.dot(yamlVal)
-  cons
-  console.log(config[julu-cname].target);
+  console.log(config.target);
   /*
   if ( process.argv.slice(4,5) === 'undefined' && ( process.argv.slice(4,5) ||  process.argv.slice(5,6) )) {
     
@@ -24,7 +23,7 @@ for ( const env of myArray ) {
   else {
     console.log("if you want to overwtite , Please provide both values & input yaml")
   }
+*/  
 };
-*/
 console.log("passedimport step");
 
