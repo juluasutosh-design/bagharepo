@@ -4,7 +4,8 @@ const fs = require('fs');
 const myArray = process.argv.slice(2)
 console.log(myArray)
 for ( const env of myArray ) {
-  const file = YAML.parse(fs.readFileSync(`./deployment/aks/chart/${env}.values.yaml`));
-  console.log(file.julu-cname.env);
+  console.log(env);
+  //const file = YAML.parse(fs.readFileSync(`./deployment/aks/chart/${env}.values.yaml`));
+  //console.log(file.julu-cname.env);
 };
 console.log("passedimport step");
