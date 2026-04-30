@@ -5,7 +5,9 @@ const dot = require('dot-object');
 const myArray = process.argv.slice(2,3)
 const yamlVal = process.argv.slice(3,4)
 const absval = process.argv.slice(4,5)
-console.log(myArray)
+console.log(myArray);
+console.log(absVal);
+console.log(yamlVal);
 /*
 for ( const env of myArray ) {
   const file = fs.readFileSync(`deployment/aks/chart/${env}.values.yaml`,'utf8');
