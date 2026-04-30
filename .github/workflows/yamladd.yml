@@ -43,16 +43,13 @@ jobs:
    needs: Node
    steps:
      - name: setting env param
+       id: param
        run:  |
          IFS=',' 
-         read -ra envArray <<< "${{ inputs.files }}"
-         echo "myArray=$envArray" >> $GITHUB_ENV
-  script:
-    runs-on: ubuntu-latest
-    needs: env_param
-    steps:
+         read -ra envArray <<< "${{ github.event.inputs.files }}"
+         echo "myArray=$envArray" >> $GITHUB_OUTPUTS
      - name: Run script
        run:  |
          git clone https://github.com/juluasutosh-design/bagharepo.git
          cd bagharepo
-         node app.js "${{ env.myArray }}"
+         node app.js "${{ steps.param.outputs.myArray }}"
