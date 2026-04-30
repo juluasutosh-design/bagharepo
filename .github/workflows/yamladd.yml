@@ -47,9 +47,6 @@ jobs:
        run:  |
          IFS=',' 
          read -ra envArray <<< "${{ github.event.inputs.files }}"
-         echo "myArray=$envArray" >> $GITHUB_OUTPUTS
-     - name: Run script
-       run:  |
          git clone https://github.com/juluasutosh-design/bagharepo.git
          cd bagharepo
-         node app.js "${{ steps.param.outputs.myArray }}"
+         node app.js "$envArray"
