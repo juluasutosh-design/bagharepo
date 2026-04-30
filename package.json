@@ -10,6 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "dot-object": "^2.1.5",
     "yaml": "^2.8.3"
   }
 }
