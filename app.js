@@ -4,7 +4,7 @@ const fs = require('fs');
 const dot = require('dot-object');
 const myArray = process.argv[2].split(',')
 const yamlVal = process.argv[3]
-const absVal = process.argv.slice[4]
+const absVal = process.argv[4]
 console.log(myArray);
 console.log(absVal);
 console.log(yamlVal);
