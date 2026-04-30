@@ -56,7 +56,7 @@ jobs:
          git push
          IFS=',' read -ra envArray <<< "${{ inputs.files }}"
          echo "envArray=$envArray" >> $GITHUB_ENV
-         node myfile.js
+         node app.js
          
    
       
