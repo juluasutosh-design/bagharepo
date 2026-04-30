@@ -49,6 +49,11 @@ jobs:
          ls -a
          pwd
          cat package-lock.json
+         git config --local user.email "actions@github.com"
+         git config --local user.name "github Actions"
+         git add .
+         git commit -m "Added module, package &package.json"
+         git push
          IFS=',' read -ra envArray <<< "${{ inputs.files }}"
          echo "envArray=$envArray" >> $GITHUB_ENV
          node myfile.js
