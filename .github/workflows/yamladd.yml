@@ -44,6 +44,7 @@ jobs:
    steps:
      - name: Run script
        run:  |
+         cd src
          npm init -y 
          npm install yaml
          ls -a
