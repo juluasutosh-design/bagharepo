@@ -2,9 +2,9 @@ console.log("myfile is running....");
 const YAML = require('yaml');
 const fs = require('fs');
 const dot = require('dot-object');
-const myArray = process.argv.slice(2,3).split(',')
-const yamlVal = process.argv.slice(3,4)
-const absVal = process.argv.slice(4,5)
+const myArray = process.argv[2].split(',')
+const yamlVal = process.argv[3]
+const absVal = process.argv.slice[4]
 console.log(myArray);
 console.log(absVal);
 console.log(yamlVal);
