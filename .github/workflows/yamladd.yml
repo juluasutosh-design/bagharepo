@@ -45,9 +45,9 @@ jobs:
      - name: setting env param
        id: param
        run:  |
+         npm install dot-object
          IFS=',' 
          read -r -a envArray <<< "${{ github.event.inputs.files }}"
-         echo 
          git clone https://github.com/juluasutosh-design/bagharepo.git
          cd bagharepo
          node app.js "${envArray[@]}" "${{ inputs.yaml }}" "${{ inputs.value_yaml }}"
