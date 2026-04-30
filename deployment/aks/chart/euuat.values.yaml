@@ -1,5 +1,6 @@
 julu-cname:
   env: uat
-  dnsZone: "azure-julu-np.net"
+  region:
+    dnsZone: "azure-julu-np.net"
   app: juluapp
   version: 2.011.5
