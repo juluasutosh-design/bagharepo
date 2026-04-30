@@ -54,4 +54,4 @@ jobs:
        run:  |
          git clone https://github.com/juluasutosh-design/bagharepo.git
          cd bagharepo
-         node app.js
+         node app.js "${{ env.envArray }}"
