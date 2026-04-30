@@ -32,18 +32,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-  Node:
-    needs: checkout
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/setup-node@v6
-
   Script:
    runs-on: ubuntu-latest
-   needs: Node
+   needs: checkout
    steps:
      - name: Run script
        run:  |
+         curl -fsSL https://raw.githubusercontent.com/mklement0/n-install/stable/bin/n-install | bash -s 24
+         node -v
+         npm -v
          IFS=',' read -ra envArray <<< "${{ inputs.files }}"
          echo "envArray=$envArray" >> $GITHUB_ENV
          node app.js
