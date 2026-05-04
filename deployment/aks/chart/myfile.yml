@@ -1,0 +1,12 @@
+app:
+  name: my-service
+  port: 3000
+  database:
+    host: localhost
+    retries: 2
+  pdb:
+    minVal: 2
+featureFlags:
+  beta: false
+logging:
+  level: info
