@@ -1,7 +1,7 @@
 const YAML = require('yaml');
 const fs = require('fs');
 
-let yamlFile = process.argv[3].split(',')
+let yamlFile = process.argv[2].split(',')
 // let input = process.argv[2]
 // const configPath = './config.yml';
 // const configText = fs.readFileSync(configPath, 'utf8');
