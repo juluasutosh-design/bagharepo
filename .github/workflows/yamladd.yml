@@ -39,11 +39,60 @@ jobs:
             
             - name: Run Script
               run: |
+name: One click Commit
+
+on:
+    workflow_dispatch:
+        inputs:
+            OverrideYaml:
+                description: 'Provide override yaml to update , Please follow the Hirechacy,Used for appending new configs & overriding values for old ones'
+                required: true
+                type: string
+                default: "niq-deploy:
+                    global:
+                        env:
+                            'uat' "
+            environment_files:
+                description: 'Provide environment specific yaml file name'
+                type: choice
+                required: true
+                options:
+                    - 'usuat'
+                    - 'euuat'
+                    - 'usuat,euuat'
+                default: 'usuat'               
+jobs:
+    commit:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+              with:
+                token: ${{secrets.MYSECRET}}
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v6
+              with:
+                node-version: '24'
+
+            - name: Install dependencies
+              run: npm install yaml
+            
+            - name: Convert override input to YAML and merge
+              run: |
                 cat > override.raw.yml << 'EOF'
                 ${{ github.event.inputs.OverrideYaml }}
                 EOF
                 yq eval -P '.' override.raw.yml > input.yml
                 node app.js ${{ github.event.inputs.environment_files }}
+            
+            - name: Commit and Push changes
+              run: |
+                git config --global user.name "github-actions[bot]"
+                git config --global user.email "github-actions[bot]@users.noreply.github.com"
+                git add .
+                git commit -m "Updated yaml files ${{ github.event.inputs.environment_files }} with provided override ${{github.event.inputs.OverrideYaml}} by ${{ github.actor}}"
+                git push
             
             - name: Commit and Push changes
               run: |
