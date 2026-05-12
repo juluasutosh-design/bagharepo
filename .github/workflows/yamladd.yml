@@ -38,7 +38,8 @@ jobs:
               run: npm install yaml
             
             - name: Run the patching script
-              run: node app.js "${{ github.event.inputs.OverrideYaml }}" "${{ github.event.inputs.environment_files }}"
+              run: |
+                node app.js ${{ fromJson(github.event.inputs.OverrideYaml) }} "${{ github.event.inputs.environment_files }}"
             
             - name: Commit and Push changes
               run: |
