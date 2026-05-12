@@ -1,52 +1,46 @@
-name: Add Yaml
-
-run-name: Add Yaml - ${{ inputs.yaml || inputs.custom_yaml || inputs.value_yaml }}
+name: One click Commit
 
 on:
-  workflow_dispatch:
-    inputs:
-      yaml:
-        type: string
-        description: Provide Yaml structure to be add , Please note top hierchy is set as niq-deploy
-      custom_yaml:
-        type: string
-        description: Provide your custom structure
-      value_yaml:
-        type: string
-        description: Provide a value which you want to override in yaml file
-      files:
-        type: choice
-        description: structure/value to be added to yaml file
-        options:
-          - 'usuat'
-          - 'euuat'
-          - 'euuat,usuat'
-          - 'ushofix'
-          - 'usprod,euprod'
-          - 'calatamprod,apacprod'
-          - 'usprod,euprod,calatamprod,apacprod'
-  
+    workflow_dispatch:
+        inputs:
+            OverrideYaml::
+                description: 'Provide override yaml to update , Please follow the Hirechacy,Used for appending new configs & overriding values for old ones'
+                required: true
+                default: "niq-deploy:
+                    global:
+                        env:
+                            'uat' "
+            environment_files:
+                description: 'Provide environment specific yaml file name'
+                type: choice
+                required: true
+                options:
+                    - 'usuat'
+                    - 'euuat'
+                    - 'usuat,euuat'
+                default: 'usuat'               
 jobs:
-  checkout:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
+    commit:
+        runs-on: 2-core
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
 
-  Node:
-    needs: checkout
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/setup-node@v6
+            - name: Set up Node.js
+              uses: actions/setup-node@v6
+              with:
+                node-version: '24'
 
-  env_param:
-   runs-on: ubuntu-latest
-   needs: Node
-   steps:
-     - name: setting env param
-       id: param
-       run:  |
-         IFS=',' 
-         read -r -a envArray <<< "${{ github.event.inputs.files }}"
-         git clone https://github.com/juluasutosh-design/bagharepo.git
-         cd bagharepo
-         node app.js "${{inputs.files}}" "${{ inputs.yaml }}" "${{ inputs.value_yaml }}"
+            - name: Install dependencies
+              run: npm install yaml
+            
+            - name: Run the patching script
+              run: node app.js "${{ github.event.inputs.OverrideYaml }}" "${{ github.event.inputs.environment_files }}"
+            
+            - name: Commit and Push changes
+              run: |
+                git config --global user.name "github-actions[bot]"
+                git config --global user.email "github-actions[bot]@users.noreply.github.com"
+                git add .
+                git commit -m "Updated yaml files ${{ github.event.inputs.environment_files }} with provided override ${{github.event.inputs.OverrideYaml}} by ${{ github.actor}}"
+                git push
