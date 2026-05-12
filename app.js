@@ -10,7 +10,7 @@ parseYamlFile(yamlFile, input);
 // console.log(configDoc.toJS());
 function parseYamlFile(yamlFile, input) {
     for (let file of yamlFile) {
-        let filePath = `./deployment/aks/${file}.values.yaml`;
+        let filePath = `./deployment/aks/chart/${file}.values.yaml`;
         let configText = fs.readFileSync(filePath, 'utf8');
         let configDoc = YAML.parseDocument(configText);
         console.log(`Processing file: ${filePath}`);
