@@ -6,7 +6,7 @@ let yamlFile = process.argv[3].split(',')
 // const configPath = './config.yml';
 // const configText = fs.readFileSync(configPath, 'utf8');
 // const configDoc = YAML.parseDocument(configText);
-parseYamlFile(yamlFile, input);
+parseYamlFile(yamlFile);
 // console.log(configDoc.toJS());
 function parseYamlFile(yamlFile, input) {
     for (let file of yamlFile) {
