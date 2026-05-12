@@ -2,7 +2,7 @@ const YAML = require('yaml');
 const fs = require('fs');
 
 let yamlFile = process.argv[2].split(',')
-// let input = process.argv[2]
+let input = process.argv[2]
 // const configPath = './config.yml';
 // const configText = fs.readFileSync(configPath, 'utf8');
 // const configDoc = YAML.parseDocument(configText);
@@ -14,7 +14,7 @@ function parseYamlFile(yamlFile, input) {
         let configText = fs.readFileSync(filePath, 'utf8');
         let configDoc = YAML.parseDocument(configText);
         console.log(`Processing file: ${filePath}`);
-        let patchDoc = YAML.parseDocument('input.yml');
+        let patchDoc = YAML.parseDocument(input);
         console.log('Parsed patch document:', patchDoc.toJS());
         mergeIntoMap(configDoc.contents, patchDoc.contents);
         fs.writeFileSync(filePath, String(configDoc), 'utf8');
