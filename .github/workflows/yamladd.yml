@@ -3,9 +3,10 @@ name: One click Commit
 on:
     workflow_dispatch:
         inputs:
-            OverrideYaml::
+            OverrideYaml:
                 description: 'Provide override yaml to update , Please follow the Hirechacy,Used for appending new configs & overriding values for old ones'
                 required: true
+                type: string
                 default: "niq-deploy:
                     global:
                         env:
