@@ -21,7 +21,7 @@ on:
                 default: 'usuat'               
 jobs:
     commit:
-        runs-on: 2-core
+        runs-on: ubuntu-latest
         steps:
             - name: Checkout
               uses: actions/checkout@v6
