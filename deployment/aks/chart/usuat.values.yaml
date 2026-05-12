@@ -4,3 +4,5 @@ julu-cname:
     dnsZone: "azure-julu-np.net"
   app: juluapp
   version: 2.011.5
+  pdb:
+    minAvailable: # -- Enable minAvailable pdb for application       enabled: false     # -- minAvailable value for pdb       value: 1     maxUnavailable:     # -- Enable maxUnavailable pdb for application       enabled: false     # -- maxUnavailable value for pdb       value: 1
