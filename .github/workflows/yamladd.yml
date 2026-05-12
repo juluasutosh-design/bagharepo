@@ -26,6 +26,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v6
+              with:
+                token: ${{secrets.MYSECRET}}
 
             - name: Set up Node.js
               uses: actions/setup-node@v6
