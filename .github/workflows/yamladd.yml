@@ -39,7 +39,7 @@ jobs:
             
             - name: Run the patching script
               run: |
-                echo "${{ github.event.OverrideYaml }}" >> YamkOverride.yml
+                echo "${{ github.event.inputs.OverrideYaml }}" >> YamkOverride.yml
                 echo "$(yq '. |= from_yaml' YamkOverride.yml)" >> input.yml
                 
                 node app.js"${{ github.event.inputs.environment_files }}"
