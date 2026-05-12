@@ -39,11 +39,7 @@ jobs:
             
             - name: Convert override input to YAML and merge
               run: |
-                cat > override.raw.yml << 'EOF'
-                ${{ github.event.inputs.OverrideYaml }}
-                EOF
-                yq eval -P '.' override.raw.yml > input.yml
-                node app.js ${{ github.event.inputs.environment_files }}
+                node app.js ${{ github.event.inputs.OverrideYaml }} ${{ github.event.inputs.environment_files }}
             
             - name: Commit and Push changes
               run: |
