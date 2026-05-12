@@ -37,12 +37,8 @@ jobs:
             - name: Install dependencies
               run: npm install yaml
             
-            - name: Convert override input to YAML and merge
+            - name: Run Script
               run: |
-                cat > override.raw.yml << 'EOF'
-                ${{ github.event.inputs.OverrideYaml }}
-                EOF
-                yq eval -P '.' override.raw.yml > input.yml
                 node app.js ${{ github.event.inputs.environment_files }}
             
             - name: Commit and Push changes
