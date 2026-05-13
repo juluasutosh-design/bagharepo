@@ -5,12 +5,10 @@ let yamlFile = process.env.ENVIRONMENT_FILES.split(',')
 const rawInput = process.env.OVERRIDE_YAML
 function normalizeByStringManipulation(raw) {
   let text = String(raw).trim();
-
-  // Convert escaped payload sequences from CI into real newlines/spaces.
+  
   text = text.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '  ');
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  // If payload is flattened into one line, split around key/comment/list boundaries.
   if (!text.includes('\n')) {
     text = text.replace(/(\S)( {2,})([A-Za-z0-9_.-]+:)/g, (_, left, spaces, key) => {
       return `${left}\n${' '.repeat(Math.max(0, spaces.length - 1))}${key}`;
