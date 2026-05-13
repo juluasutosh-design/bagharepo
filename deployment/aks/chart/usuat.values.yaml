@@ -1,5 +1,7 @@
 julu-cname:
-  env: usuat
+  env:
+    # -- Environment for the application
+    - uat
   region:
     dnsZone: "azure-julu-np.net"
   app: juluapp
@@ -17,3 +19,5 @@ julu-cname:
       enabled: false
       # -- maxUnavailable value for pdb
       value: 1
+  # -- Application name
+  appName: commitapp
