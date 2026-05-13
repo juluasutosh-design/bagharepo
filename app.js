@@ -2,7 +2,38 @@ const YAML = require('yaml');
 const fs = require('fs');
 
 let yamlFile = process.env.ENVIRONMENT_FILES.split(',')
-const input = process.env.OVERRIDE_YAML
+const rawInput = process.env.OVERRIDE_YAML
+function normalizeByStringManipulation(raw) {
+  let text = String(raw).trim();
+
+  // Convert escaped payload sequences from CI into real newlines/spaces.
+  text = text.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '  ');
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // If payload is flattened into one line, split around key/comment/list boundaries.
+  if (!text.includes('\n')) {
+    text = text.replace(/(\S)( {2,})([A-Za-z0-9_.-]+:)/g, (_, left, spaces, key) => {
+      return `${left}\n${' '.repeat(Math.max(0, spaces.length - 1))}${key}`;
+    });
+
+    text = text.replace(/(\S)( {2,})(#)/g, (_, left, spaces, marker) => {
+      return `${left}\n${' '.repeat(Math.max(0, spaces.length - 1))}${marker}`;
+    });
+
+    text = text.replace(/(\S)( {2,})(-\s)/g, (_, left, spaces, marker) => {
+      return `${left}\n${' '.repeat(Math.max(0, spaces.length - 1))}${marker}`;
+    });
+  }
+
+  // Keep indentation, trim only trailing spaces.
+  text = text
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+$/g, ''))
+    .join('\n');
+
+  return text;
+}
+const input = normalizeByStringManipulation(rawInput);
 // const configPath = './config.yml';
 // const configText = fs.readFileSync(configPath, 'utf8');
 // const configDoc = YAML.parseDocument(configText);
