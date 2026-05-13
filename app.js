@@ -1,8 +1,8 @@
 const YAML = require('yaml');
 const fs = require('fs');
 
-let yamlFile = process.argv[3].split(',')
-let input = process.argv[2]
+let yamlFile = process.env.ENVIRONMENT_FILES.split(',')
+const input = process.env.OVERRIDE_YAML
 // const configPath = './config.yml';
 // const configText = fs.readFileSync(configPath, 'utf8');
 // const configDoc = YAML.parseDocument(configText);
