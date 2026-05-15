@@ -19,20 +19,3 @@ julu-cname:
         value: 2
       # -- Application name updated
       appName: Appname-version.1
-  app: juluapp
-  version: 2.011.5
-  pdb:
-    minAvailable:
-      # -- Enable minAvailable pdb for application
-      enabled:
-        - false
-        - true
-      # -- minAvailable value for pdb
-      value: 1
-    maxUnavailable:
-      # -- Enable maxUnavailable pdb for application
-      enabled: false
-      # -- maxUnavailable value for pdb
-      value: 1
-  # -- Application name
-  appName: commitapp
