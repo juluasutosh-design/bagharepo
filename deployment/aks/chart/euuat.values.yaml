@@ -3,7 +3,7 @@ julu-cname:
     # -- Environment for the application
     - uat
   region:
-    dnsZone: "azure-julu-np.net"
+    dnsZone: "azure-julu-np.net.com"
   app: juluapp
   version: 2.011.5
   pdb:
