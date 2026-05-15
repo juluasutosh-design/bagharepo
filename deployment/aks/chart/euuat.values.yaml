@@ -21,6 +21,3 @@ julu-cname:
       value: 1
   # -- Application name
   appName: commitapp
-niq-deploy:
-  pdb:
-    minAvailable: # -- Enable minAvailable pdb for application       enabled:         - false         - true     # -- minAvailable value for pdb       value: 1     maxUnavailable:     # -- Enable maxUnavailable pdb for application       enabled: false     # -- maxUnavailable value for pdb       value: 1
