@@ -50,7 +50,7 @@ jobs:
 
   Preview_step1:
     needs:  [ Select] 
-    if: ${{ inputs.Preview && !cancelled() && (needs.Select.result == 'Sucess' || needs.Select.result == 'Skipped')}}
+    if: ${{ inputs.Preview && !cancelled() && (needs.Select.result == 'sucess' || needs.Select.result == 'skipped')}}
     runs-on: ubuntu-latest
     steps:
       - name: echo
@@ -65,8 +65,8 @@ jobs:
         run:  |
              echo "${{ inputs.Preview_2 && (needs.Preview_step1.result == 'Sucess' || needs.Preview_step1.result == 'Skipped') }}"
              echo "${{ inputs.Preview_2}}"
-             echo "${{ needs.Preview_step1.result == 'Sucess'}}"
-             echo "${{ needs.Preview_step1.result == 'Skipped' }}"
+             echo "${{ needs.Preview_step1.result == 'sucess'}}"
+             echo "${{ needs.Preview_step1.result == 'skipped' }}"
              
   mail_success:
     needs: [Select,Preview_step1,Preview_step2]
