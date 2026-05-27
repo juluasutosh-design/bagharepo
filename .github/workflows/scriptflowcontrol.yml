@@ -64,8 +64,7 @@ jobs:
     steps:
       - name: echo
         run:  |
-          echo -e "\e[32>mSelect ran\e[0m" 
-          exit 1
+          sleep 400000
   mail_success:
     needs: [Select,Preview_step1,Preview_step2]
     runs-on: ubuntu-latest
