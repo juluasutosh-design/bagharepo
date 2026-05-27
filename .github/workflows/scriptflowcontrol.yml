@@ -51,7 +51,7 @@ jobs:
 
   Preview_step1:
     needs:  [ Select] 
-    if: ${{ inputs.Preview && needs.Select.outputs = 'sucess' && !cancelled() }}
+    if: ${{ inputs.Preview && needs.Select.result == 'Sucess' && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: echo
