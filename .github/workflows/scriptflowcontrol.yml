@@ -50,7 +50,7 @@ jobs:
 
   Preview_step1:
     needs:  [ Select] 
-    if: ${{ inputs.Preview && (needs.Select.result == 'Sucess' || needs.Select.result == 'Skipped') && !cancelled() }}
+    if: ${{ inputs.Preview && !cancelled() && (needs.Select.result == 'Sucess' || needs.Select.result == 'Skipped')}}
     runs-on: ubuntu-latest
     steps:
       - name: echo
@@ -58,7 +58,7 @@ jobs:
           echo -e "\e[32>mSelect ran\e[0m"
   Preview_step2:
     needs:  [ Preview_step1] 
-    if: ${{ inputs.Preview_2 && (needs.Preview_step1.result == 'Sucess' || needs.Preview_step1.result == 'Skipped') && !cancelled() }}
+    if: ${{ inputs.Preview_2 && !cancelled() && (needs.Preview_step1.result == 'Sucess' || needs.Preview_step1.result == 'Skipped')}}
     runs-on: ubuntu-latest
     steps:
       - name: echo
