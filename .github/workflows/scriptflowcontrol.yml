@@ -19,7 +19,7 @@ on:
 jobs:
       
   Select:
-    if: ${{ inputs.Select }}
+    if: ${{ inputs.Select && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
