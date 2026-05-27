@@ -67,6 +67,7 @@ jobs:
              echo "${{ inputs.Preview_2}}"
              echo "${{ needs.Preview_step1.result == 'success'}}"
              echo "${{ needs.Preview_step1.result == 'skipped' }}"
+             sleep 40000
              
   mail_success:
     needs: [Select,Preview_step1,Preview_step2]
