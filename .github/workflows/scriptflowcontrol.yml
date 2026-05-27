@@ -68,7 +68,7 @@ jobs:
   mail_success:
     needs: [Select,Preview_step1,Preview_step2]
     runs-on: ubuntu-latest
-    if: !cancelled() && success()
+    if: success()
     steps:
       - name: echo new
         run:  |
