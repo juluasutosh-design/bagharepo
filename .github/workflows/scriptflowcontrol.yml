@@ -64,6 +64,10 @@ jobs:
       - name: echo
         run:  |
              echo "${{ inputs.Preview_2 && (needs.Preview_step1.result == 'Sucess' || needs.Preview_step1.result == 'Skipped') }}"
+             echo "${{ inputs.Preview_2}}"
+             echo "${{ needs.Preview_step1.result == 'Sucess'}}"
+             echo "${{ needs.Preview_step1.result == 'Skipped' }}"
+             
   mail_success:
     needs: [Select,Preview_step1,Preview_step2]
     runs-on: ubuntu-latest
