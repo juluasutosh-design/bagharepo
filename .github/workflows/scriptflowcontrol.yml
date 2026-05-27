@@ -74,7 +74,7 @@ jobs:
     if:  |
         (needs.Select.result == 'success' || needs.Select.result == 'skipped') &&
         (needs.Preview_step1.result == 'success' || needs.Preview_step1.result == 'skipped') &&
-        (needs.Preview_step2.result == 'success' || needs.Preview_step2.result == 'skipped')
+        (needs.Preview_step2.result == 'success' || needs.Preview_step2.result == 'skipped') && !cancelled()
     steps:
       - name: echo new
         run:  |
