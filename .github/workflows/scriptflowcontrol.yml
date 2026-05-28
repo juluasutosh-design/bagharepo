@@ -56,6 +56,7 @@ jobs:
       - name: echo
         run:  |
           echo -e "\e[32>mSelect ran\e[0m"
+          sleep 40000          
   Preview_step2:
     needs:  [ Preview_step1] 
     if: ${{ inputs.Preview_2 && (needs.Preview_step1.result == 'success' || needs.Preview_step1.result == 'skipped') && !cancelled() }}
@@ -67,7 +68,7 @@ jobs:
              echo "${{ inputs.Preview_2}}"
              echo "${{ needs.Preview_step1.result == 'success'}}"
              echo "${{ needs.Preview_step1.result == 'skipped' }}"
-             sleep 40000
+
              
   mail_success:
     needs: [Select,Preview_step1,Preview_step2]
