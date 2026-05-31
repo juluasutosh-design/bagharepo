@@ -165,7 +165,7 @@ function applyPathUpdate(rootMap, path, value, doc) {
 		const currentMap = ensureMapForPair(currentPair, doc);
 
 		let nextPair = findPairInMap(currentMap, key);
-        console.log(`key ${key}:`, nextPair === undefined ? `not found` : `found`);
+        console.log(`key ${key}:`, nextPair === undefined ? `not found` : `found value ${YAML.stringify(nextPair.value)}`);
 		if (!nextPair) {
 			nextPair = appendPair(
 				currentMap,
