@@ -1,7 +1,7 @@
 julu-deploy:
   env:
     # -- Environment for the application
-    uat
+    prouat
   region:
     dnsZone: "azure-julu-np.net.com.eu"
     app: 12.5.12
@@ -21,4 +21,4 @@ julu-deploy:
       appName: Appname-version.1
   podResources:
     requests:
-      cpu: 1
+      cpu: 8
