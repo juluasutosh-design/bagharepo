@@ -11,7 +11,7 @@ const fs = require('fs');
 
 function parseInput(raw) {
 	const updates = [];
-	if ( raw.split(';') === raw){
+	if ( String(raw.split(';')) === raw){
         console.error(`The input "${raw}" does not contain the delimiter ";",exiting....`)
         process.exit(1);
     }
