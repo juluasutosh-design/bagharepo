@@ -191,10 +191,6 @@ function applyPathUpdate(rootMap, path, value, doc) {
 }
 
 function main() {
-	if (!YAML.isMap(configDoc.contents)) {
-		throw new Error('Root of bedoreConfig.yml must be a YAML map/object.');
-	}
-
 	const updates = parseInput(input);
 
 	for (const update of updates) {
