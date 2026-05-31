@@ -203,7 +203,7 @@ function main() {
             console.log(`Proceeding with cname files update...`);
             for (let env of process.env.ENVIRONMENT_FILES.split(',')) {
                 console.log(`Processing environment: ${env}`);
-                let configPath = `./deployment/aks/cname/${env}.values.yaml`;
+                let configPath = `./deployment/aks/chart/cname/${env}.values.yaml`;
                 let configText = fs.readFileSync(configPath, 'utf8');
                 let configDoc = YAML.parseDocument(configText);
                 applyPathUpdate(configDoc.contents, update.path, update.value, configDoc);
@@ -215,7 +215,7 @@ function main() {
             console.log(`Proceeding with deploy files update...`);
             for (let env of process.env.ENVIRONMENT_FILES.split(',')) {
                 console.log(`Processing environment: ${env}`);
-                let configPath = `./deployment/aks/${env}.values.yaml`;
+                let configPath = `./deployment/aks/$chart/{env}.values.yaml`;
                 let configText = fs.readFileSync(configPath, 'utf8');
                 let configDoc = YAML.parseDocument(configText);
                 applyPathUpdate(configDoc.contents, update.path, update.value, configDoc);
