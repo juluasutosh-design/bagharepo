@@ -1,125 +1,232 @@
 const YAML = require('yaml');
 const fs = require('fs');
 
-let yamlFile = process.env.ENVIRONMENT_FILES.split(',')
-const rawInput = process.env.OVERRIDE_YAML
-function normalizeByStringManipulation(raw) {
-  let text = String(raw).trim();
-  
-  text = text.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '  ');
-  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-  if (!text.includes('\n')) {
-    text = text.replace(/(\S)( {2,})([A-Za-z0-9_.-]+:)/g, (_, left, spaces, key) => {
-      return `${left}\n${' '.repeat(Math.max(0, spaces.length - 1))}${key}`;
-    });
-
-    text = text.replace(/(\S)( {2,})(#)/g, (_, left, spaces, marker) => {
-      return `${left}\n${' '.repeat(Math.max(0, spaces.length - 1))}${marker}`;
-    });
-
-    text = text.replace(/(\S)( {2,})(-\s)/g, (_, left, spaces, marker) => {
-      return `${left}\n${' '.repeat(Math.max(0, spaces.length - 1))}${marker}`;
-    });
-  }
-
-  // Keep indentation, trim only trailing spaces.
-  text = text
-    .split('\n')
-    .map((line) => line.replace(/[ \t]+$/g, ''))
-    .join('\n');
-
-  return text;
-}
-const input = normalizeByStringManipulation(rawInput);
-// const configPath = './config.yml';
+// const configPath = './bedoreConfig.yml';
+// const outputPath = './Afterconfig.yml';
 // const configText = fs.readFileSync(configPath, 'utf8');
 // const configDoc = YAML.parseDocument(configText);
-parseYamlFile(yamlFile,input);
-// console.log(configDoc.toJS());
-function parseYamlFile(yamlFile, input) {
-    for (let file of yamlFile) {
-        let filePath = `./deployment/aks/chart/${file}.values.yaml`;
-        let configText = fs.readFileSync(filePath, 'utf8');
-        let configDoc = YAML.parseDocument(configText);
-        console.log(`Processing file: ${filePath}`);
-        let patchDoc = YAML.parseDocument(input);
-        console.log('Parsed patch document:', patchDoc.toJS());
-        mergeIntoMap(configDoc.contents, patchDoc.contents);
-        fs.writeFileSync(filePath, String(configDoc), 'utf8');
-    }
-}
-//expect user to give last parent and key to update the value of last parent in yaml file
-// let input = `
-// niq-deploy:
-//   ingress:
-//     # -- Ingress Path
-//     path: /(.*)
-//     # -- DNS Zone for Ingress
-//     dnsZone: "azure-papinpus-np.nielsencsp.net"
-//     tls:
-//       # -- Enable tls for HTTPS
-//       enabled: false
-//     hostName: 
-//     - "julus-test-app-1" #domain
-//     - "julus-test-app2" #domain
-//     # separate domain
-//     - 'sibun-bhalu-app3' #domain sibun`;
 
-// const patchDoc = YAML.parseDocument(input);
+// Input format: parent~child~child2~value;parent~child2~child3~value
 
-// console.log(patchDoc.toJS());
-// console.log(typeof(configDoc.contents));
 
-// function isObject(value) {
-//   return value !== null && typeof value === 'object' && !Array.isArray(value);
-// }
+function parseInput(raw) {
+	const updates = [];
 
-function mergeIntoMap(mapNode, patchMapNode) {
-  for (const patchPair of patchMapNode.items) {
-    console.log('Processing patch pair:', patchPair);
-    const key = patchPair.key && patchPair.key.value;
-    console.log('Patch key:', key);
-    const existingPair = mapNode.items.find((item) => item.key && item.key.value === key);
-    console.log('Existing pair:', existingPair);
+	for (const segment of raw.split(';')) {
+		const trimmed = segment.trim();
+		if (!trimmed) {
+			continue;
+		}
+        if (String(trimmed.split('~')) === trimmed){
+            console.error(`The string "${trimmed}" does not contain the delimiter "~",exiting....`)
+            process.exit(1);
+        }
+		const parts = trimmed
+			.split('~')
+			.map((part) => part.trim())
+			.filter(Boolean);
 
-    if (!existingPair) {
-      mapNode.items.push(patchPair.clone());
-      continue;
-    }
+		if (parts.length < 2) {
+			throw new Error(`Invalid input segment: ${trimmed}`);
+		}
 
-    // If patch has pair-level comments/spacers, carry them over.
-    // if (patchPair.commentBefore != null) {
-    //     console.log('Updating commentBefore for key:', key);
-    //   existingPair.commentBefore = patchPair.commentBefore;
-    // }
-    // if (patchPair.comment != null) {
-    //   console.log('Updating comment for key:', key);
-    //   existingPair.comment = patchPair.comment;
-    // }
-    // if (patchPair.spaceBefore != null) {
-    //   console.log('Updating spaceBefore for key:', key);
-    //   existingPair.spaceBefore = patchPair.spaceBefore;
-    // }
+		const valueText = parts.pop();
+		updates.push({
+			path: parts,
+			value: YAML.parse(valueText)
+		});
+	}
 
-    const existingValue = existingPair.value;
-    const patchValue = patchPair.value;
-
-    if (YAML.isMap(existingValue) && YAML.isMap(patchValue)) {
-      mergeIntoMap(existingValue, patchValue);
-      continue;
-    }
-    existingPair.value = patchValue.clone();
-  }
+	return updates;
 }
 
-// if (!YAML.isMap(configDoc.contents)) {
-//   throw new Error('config.yml root must be a YAML map/object.');
-// }
+function findPairInMap(mapNode, key) {
+	const getPairKey = (pair) => {
+		if (YAML.isScalar(pair.key)) {
+			return String(pair.key.value);
+		}
 
-// if (!YAML.isMap(patchDoc.contents)) {
-//   throw new Error('Input patch must be a YAML map/object.');
-// }
+		if (
+			typeof pair.key === 'string' ||
+			typeof pair.key === 'number' ||
+			typeof pair.key === 'boolean'
+		) {
+			return String(pair.key);
+		}
 
+		return null;
+	};
 
+	return mapNode.items.find(
+		(pair) => getPairKey(pair) === key
+	);
+}
+
+function findPairRecursive(node, key ) {
+	if (YAML.isMap(node)) {
+		const found = findPairInMap(node, key);
+		if (found) {
+            console.log(`Found pair for key: ${key}`);
+			return { ownerMap: node, pair: found };
+		}
+
+		for (const pair of node.items) {
+			const childKey = YAML.isScalar(pair.key) ? pair.key.value : String(pair.key);
+			console.log(`Descending into YAML Child with key: ${childKey}`);
+			const nested = findPairRecursive(pair.value, key, pair.key.value);
+			if (nested) {
+				return nested;
+			}
+		}
+	}
+
+	if (YAML.isSeq(node)) {
+		for (const item of node.items) {
+			const nested = findPairRecursive(item, key);
+			if (nested) {
+				return nested;
+			}
+		}
+	}
+
+	return null;
+}
+
+function ensureMapForPair(pair, doc) {
+	if (!YAML.isMap(pair.value)) {
+		const previousValue = pair.value;
+		const newMap = doc.createNode({});
+
+		if (previousValue) {
+			newMap.comment = previousValue.comment;
+			newMap.commentBefore = previousValue.commentBefore;
+			newMap.spaceBefore = previousValue.spaceBefore;
+		}
+
+		pair.value = newMap;
+	}
+	return pair.value;
+}
+
+function setPairValuePreservingComments(pair, value, doc) {
+	const previousValue = pair.value;
+	const nextValue = doc.createNode(value);
+
+	if (previousValue) {
+		nextValue.comment = previousValue.comment;
+		nextValue.commentBefore = previousValue.commentBefore;
+		nextValue.spaceBefore = previousValue.spaceBefore;
+	}
+
+	pair.value = nextValue;
+}
+
+function appendPair(mapNode, key, valueNode, doc) {
+    console.log(`Key not found, Appending new pair with key: ${key} and value: ${valueNode}`);
+	const keyNode = doc.createNode(key);
+	const newPair = new YAML.Pair(keyNode, valueNode);
+	mapNode.items.push(newPair);
+	return newPair;
+}
+
+function findAppendTarget(rootMap) {
+	// When a key is missing, don't append at the document root.
+	// Descend into the first root value that is a map (e.g. niq-deploy's children)
+	// so the new key lands inside the application config, not alongside it.
+	for (const rootPair of rootMap.items) {
+		if (YAML.isMap(rootPair.value)) {
+			return rootPair.value;
+		}
+	}
+	return rootMap;
+}
+
+function applyPathUpdate(rootMap, path, value, doc) {
+	const [firstKey, ...restKeys] = path;
+	let first = findPairRecursive(rootMap, firstKey);
+	if (!first) {
+        console.log(`Key not found : ${firstKey}. Going down the Yaml Tree`);
+		const appendTarget = findAppendTarget(rootMap);
+		const newFirst = appendPair(appendTarget, firstKey, doc.createNode({}), doc);
+		first = { ownerMap: appendTarget, pair: newFirst };
+        console.log('first',first.pair.key)
+	}
+	let currentPair = first.pair;
+
+	if (restKeys.length === 0) {
+		setPairValuePreservingComments(currentPair, value, doc);
+		return;
+	}
+    // console.log(`current`,currentPair);
+	for (let i = 0; i < restKeys.length; i += 1) {
+		const key = restKeys[i];
+		const isLast = i === restKeys.length - 1;
+        console.log(`Processing child key: ${key}`);
+		const currentMap = ensureMapForPair(currentPair, doc);
+
+		let nextPair = findPairInMap(currentMap, key);
+        console.log(`key ${key}:`, nextPair === undefined ? `not found` : `Already exists with value: ${YAML.stringify(nextPair.value)}`);
+		if (!nextPair) {
+			nextPair = appendPair(
+				currentMap,
+				key,
+				isLast ? doc.createNode(value) : doc.createNode({}),
+				doc
+			);
+		} else if (isLast) {
+            if( YAML.stringify(nextPair.value) === YAML.stringify(value) ){
+                console.log(`Value for key ${key} is already up to date, skipping update.`);
+            }
+            else{
+                console.log(`Updating value for key ${key} to ${value}`);
+                setPairValuePreservingComments(nextPair, value, doc);
+            }
+        }
+
+        else if (!isLast) {
+            console.log(`Descending into next pair with key: ${restKeys[i+1]}`);
+        }
+		currentPair = nextPair;
+	}
+}
+
+function main() {
+	if (!YAML.isMap(configDoc.contents)) {
+		throw new Error('Root of bedoreConfig.yml must be a YAML map/object.');
+	}
+
+	const updates = parseInput(input);
+
+	for (const update of updates) {
+        console.log(`Applying update key and value: ${update.path.join(':')} and ${update.value}`);
+        if (process.env.CONFIG_FILE_TYPE === 'cname') {
+            console.log(`Proceeding with cname files update...`);
+            for (let env of process.env.ENVIRONMENT_FILES.split(',')) {
+                console.log(`Processing environment: ${env}`);
+                let configPath = `./deployment/aks/cname/${env}.values.yaml`;
+                let configText = fs.readFileSync(configPath, 'utf8');
+                let configDoc = YAML.parseDocument(configText);
+                applyPathUpdate(configDoc.contents, update.path, update.value, configDoc);
+                fs.writeFileSync(configPath, String(configDoc), 'utf8');
+                console.log(`Updated YAML written to ${configPath}`);
+             }
+            }
+        else if (process.env.CONFIG_FILE_TYPE === 'deploy') {
+            console.log(`Proceeding with deploy files update...`);
+            for (let env of process.env.ENVIRONMENT_FILES.split(',')) {
+                console.log(`Processing environment: ${env}`);
+                let configPath = `./deployment/aks/${env}.values.yaml`;
+                let configText = fs.readFileSync(configPath, 'utf8');
+                let configDoc = YAML.parseDocument(configText);
+                applyPathUpdate(configDoc.contents, update.path, update.value, configDoc);
+                fs.writeFileSync(configPath, String(configDoc), 'utf8');
+                console.log(`Updated YAML written to ${configPath}`);
+             }
+            }
+        else {
+            console.error(`Unknown CONFIG_FILE_TYPE: ${process.env.CONFIG_FILE_TYPE}. Expected 'cname' or 'deploy'. Exiting...`);
+        }
+    }
+}
+main();
 
