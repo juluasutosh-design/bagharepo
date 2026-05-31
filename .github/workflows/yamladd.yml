@@ -55,6 +55,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           if git diff --quiet; then
+            git pull
             git commit -m "chore(ci):Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }}"
             git push --set-upstream origin feature/update-yaml-files
             gh pr create --title "chore(ci): Update yaml files ${{ github.event.inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base ${{ github.ref }} --head feature/update-yaml-files --reviewer ${{ github.actor}}
