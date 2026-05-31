@@ -52,11 +52,10 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          if git add .; then
-              echo "Changes added to staging area."
-            else
-              echo "No changes to commit."
-              exit 0
-          fi
+          git add .
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi      
           git commit -m "Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }}"
           git push
