@@ -4,7 +4,7 @@ julu-deploy:
     uat
   region:
     dnsZone: "azure-julu-np.net.com.eu"
-    app: 12.5.13
+    app: 12.5.12
     version: 5.7.9
     pdb:
       minAvailable:
