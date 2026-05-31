@@ -191,7 +191,7 @@ function applyPathUpdate(rootMap, path, value, doc) {
 }
 
 function main() {
-	const updates = parseInput(input);
+	const updates = parseInput(process.env.OVERRIDE_YAML);
 
 	for (const update of updates) {
         console.log(`Applying update key and value: ${update.path.join(':')} and ${update.value}`);
