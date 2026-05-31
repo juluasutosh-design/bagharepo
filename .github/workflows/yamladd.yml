@@ -19,6 +19,13 @@ on:
           - 'euuat'
           - 'usuat,euuat'
         default: 'usuat'
+      config_file_Type:
+        description: 'Provide the Type of yaml file to be updated i.e cname or deploy'
+        type: choice
+        required: true
+        options:
+          - 'cname'
+          - 'deploy'        
 jobs:
   commit:
     runs-on: ubuntu-latest
@@ -41,6 +48,7 @@ jobs:
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
           ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
+          CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
         run: node app.js
 
       - name: Commit and Push changes
