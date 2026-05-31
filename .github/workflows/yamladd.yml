@@ -6,9 +6,7 @@ on:
       OverrideYaml:
         description: 'Provide override yaml to update. Used for appending new configs and overriding existing values.'
         required: true
-        default: |
-            global:
-              env: uat
+        
       environment_files:
         description: 'Provide environment specific yaml file name'
         type: choice
