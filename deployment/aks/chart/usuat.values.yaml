@@ -19,7 +19,7 @@ julu-deploy:
         value: 2
       # -- Application name updated
       appName: Appname-version.1
-  app: juluapp
+  app: 12.5.13
   version: 2.011.5
   pdb:
     minAvailable:
