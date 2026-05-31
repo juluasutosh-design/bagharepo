@@ -57,7 +57,12 @@ jobs:
           if git diff --quiet; then
             git commit -m "chore(ci):Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }}"
             git push --set-upstream origin feature/update-yaml-files
-            gh pr create --title "chore(ci): Update yaml files ${{ github.event.inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base ${{ github.ref }} --head feature/update-yaml-files --reviewer ${{ github.actor}}
           else
             echo "No changes to commit"
           fi  
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.MYSECRET }}
+        run:  |
+          gh pr create --title "chore(ci): Update yaml files ${{ github.event.inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base ${{ github.ref }} --head feature/update-yaml-files --reviewer ${{ github.actor}}
+
