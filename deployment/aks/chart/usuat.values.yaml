@@ -1,4 +1,4 @@
-julu-cname:
+julu-deploy:
   env:
     # -- Environment for the application
     - uat
