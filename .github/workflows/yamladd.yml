@@ -55,7 +55,7 @@ jobs:
           git add .
           if git diff --quiet; then
             echo "No changes to commit."
-            exit 0
-          fi      
-          git commit -m "Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }}"
-          git push
+          else
+            git commit -m "Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }}"
+            git push
+          fi  
