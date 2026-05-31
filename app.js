@@ -110,7 +110,7 @@ function ensureMapForPair(pair, doc) {
 
 function setPairValuePreservingComments(pair, value, doc) {
 	const previousValue = pair.value;
-    console.log(`Setting value for key ${YAML.stringify(pair.key)} to ${YAML.stringify(value)}`);
+    console.log(`Setting value for key ${YAML.stringify(pair.key)} to ${YAML.stringify(value)} from ${YAML.stringify(previousValue)}`);
 	const nextValue = doc.createNode(value);
     console.log(`Created new node for value: ${YAML.stringify(nextValue)}`);
 
