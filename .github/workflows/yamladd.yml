@@ -7,7 +7,6 @@ on:
         description: 'Provide override yaml to update. Used for appending new configs and overriding existing values.'
         required: true
         default: |
-          niq-deploy:
             global:
               env: uat
       environment_files:
