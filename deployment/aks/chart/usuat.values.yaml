@@ -5,11 +5,16 @@ julu-deploy:
   region:
     dnsZone: "azure-julu-np.net.com.eu"
     app: 12.5.12
-    version: 5.7.9
-      # -- Application name updated
+    version: 5.7.9 # -- Application name updated
     appName: Appname-version.1
   # -- Application name
   appName: commitapp
   podResources:
     requests:
       cpu: 8
+  scaledobject:
+    enabled: true
+    triggers:
+      metadata:
+        query: (avg:jvm.thread_count{env:dd-env, service:dd-service, market:dd-market,
+          version:dd-version, kube_cluster_name:dd-cluster} - 60)
