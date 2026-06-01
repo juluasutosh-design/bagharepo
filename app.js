@@ -8,7 +8,17 @@ const fs = require('fs');
 
 // Input format: parent~child~child2~value;parent~child2~child3~value
 
+function readYamlOverrideFromFile(filePath) {
+	if (!filePath.trim()) {
+		return '';
+	}
 
+	if (!fs.existsSync(filePath)) {
+		throw new Error(`OVERRIDE_YAML_FILE not found: ${filePath}`);
+	}
+
+	return fs.readFileSync(filePath, 'utf8');
+}
 function parseInput(raw) {
 	const updates = [];
     if (raw.includes(';') === false) {
@@ -206,6 +216,46 @@ function appendPair(mapNode, key, valueNode, doc) {
 	return newPair;
 }
 
+function mergeIntoMap(targetMapNode, patchMapNode) {
+	for (const patchPair of patchMapNode.items) {
+		const patchKey = YAML.isScalar(patchPair.key)
+			? String(patchPair.key.value)
+			: String(patchPair.key);
+
+		const existingPair = findPairInMap(targetMapNode, patchKey);
+
+		if (!existingPair) {
+			targetMapNode.items.push(patchPair.clone());
+			continue;
+		}
+
+		const existingValue = existingPair.value;
+		const patchValue = patchPair.value;
+
+		if (YAML.isMap(existingValue) && YAML.isMap(patchValue)) {
+			mergeIntoMap(existingValue, patchValue);
+			continue;
+		}
+
+		// Replace scalars/sequences (including triggers arrays) with the override value.
+		existingPair.value = patchValue.clone();
+	}
+}
+
+function applyYamlOverride(rawYaml, doc) {
+	const patchDoc = YAML.parseDocument(rawYaml);
+
+	if (!YAML.isMap(patchDoc.contents)) {
+		throw new Error('OVERRIDE_YAML must be a YAML map/object.');
+	}
+
+	if (!YAML.isMap(doc.contents)) {
+		throw new Error('Target config root must be a YAML map/object.');
+	}
+
+	mergeIntoMap(doc.contents, patchDoc.contents);
+}
+
 function findAppendTarget(rootMap) {
 	// When a key is missing, don't append at the document root.
 	// Descend into the first root value that is a map (e.g. niq-deploy's children)
@@ -243,8 +293,10 @@ function applyPathUpdate(rootMap, path, value, doc) {
 		if (isArraySegment(key)) {
 			const arrayKeys = getArraySegmentKeys(key);
 			const currentSeq = ensureSeqForPair(currentPair, doc);
+			let nextCurrentPair = null;
 			for (const arrayKey of arrayKeys) {
 				let arrayItem = findPairInSeqItem(currentSeq, arrayKey);
+				let arrayItemPair;
 
 				if (!arrayItem) {
 					arrayItem = appendSeqMapItem(
@@ -253,17 +305,19 @@ function applyPathUpdate(rootMap, path, value, doc) {
 						isLast ? doc.createNode(value) : doc.createNode({}),
 						doc
 					);
-				} else {
-					const arrayItemPair = findPairInMap(arrayItem, arrayKey);
-					if (isLast) {
-						setPairValuePreservingComments(arrayItemPair, value, doc);
-					} else {
-						ensureMapForPair(arrayItemPair, doc);
-					}
 				}
+
+				arrayItemPair = findPairInMap(arrayItem, arrayKey);
+				if (isLast) {
+					setPairValuePreservingComments(arrayItemPair, value, doc);
+				} else {
+					ensureMapForPair(arrayItemPair, doc);
+				}
+
+				nextCurrentPair = arrayItemPair;
 			}
 
-			currentPair = null;
+			currentPair = nextCurrentPair;
 			continue;
 		}
 
@@ -308,8 +362,17 @@ function applyPathUpdate(rootMap, path, value, doc) {
 		currentPair = nextPair;
 	}
 }
+
 function main() {
 	const updates = parseInput(process.env.OVERRIDE_YAML);
+	const resolvedYamlOverride = readYamlOverrideFromFile(process.env.OVERRIDE_PATH);
+	if (resolvedYamlOverride.trim()) {
+		console.log(`Applying OVERRIDE_YAML_FILE input from ${yamlOverrideFilePath}`);
+		applyYamlOverride(resolvedYamlOverride, configDoc);
+		fs.writeFileSync(outputPath, String(configDoc), 'utf8');
+		console.log(`Updated YAML written to ${outputPath}`);
+		return;
+	}	
 
 	for (const update of updates) {
         console.log(`Applying update key and value: ${update.path.join(':')} and ${update.value}`);
