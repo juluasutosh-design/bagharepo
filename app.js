@@ -11,15 +11,17 @@ const fs = require('fs');
 
 function parseInput(raw) {
 	const updates = [];
-	if ( String(raw.split(';')) === raw){
+    if (raw.includes(';') === false) {
         console.error(`The input "${raw}" does not contain the delimiter ";",exiting....`)
         process.exit(1);
     }
+    console.log(`Parsing input: ${raw.split(';')}`);
 	for (const segment of raw.split(';')) {
 		const trimmed = segment.trim();
 		if (!trimmed) {
 			continue;
 		}
+        console.log(`Processing segment: ${trimmed}`);
         if (String(trimmed.split('~')) === trimmed){
             console.error(`The string "${trimmed}" does not contain the delimiter "~",exiting....`)
             process.exit(1);
@@ -63,6 +65,21 @@ function findPairInMap(mapNode, key) {
 	return mapNode.items.find(
 		(pair) => getPairKey(pair) === key
 	);
+}
+
+function isArraySegment(segment) {
+	return segment.startsWith('[') && segment.endsWith(']');
+}
+
+function getArraySegmentKey(segment) {
+	return segment.slice(1, -1).trim();
+}
+
+function getArraySegmentKeys(segment) {
+	return getArraySegmentKey(segment)
+		.split(',')
+		.map((part) => part.trim())
+		.filter(Boolean);
 }
 
 function findPairRecursive(node, key ) {
@@ -111,14 +128,42 @@ function ensureMapForPair(pair, doc) {
 	return pair.value;
 }
 
+function ensureSeqForPair(pair, doc) {
+	if (!YAML.isSeq(pair.value)) {
+		const previousValue = pair.value;
+		const newSeq = doc.createNode([]);
+
+		if (previousValue) {
+			newSeq.comment = previousValue.comment;
+			newSeq.commentBefore = previousValue.commentBefore;
+			newSeq.spaceBefore = previousValue.spaceBefore;
+		}
+
+		pair.value = newSeq;
+	}
+
+	return pair.value;
+}
+
+function findPairInSeqItem(seqNode, key) {
+	return seqNode.items.find((item) => YAML.isMap(item) && findPairInMap(item, key));
+}
+
+function appendSeqMapItem(seqNode, key, valueNode, doc) {
+	const mapNode = doc.createNode({});
+	mapNode.items.push(new YAML.Pair(doc.createNode(key), valueNode));
+	seqNode.items.push(mapNode);
+	return mapNode;
+}
+
 function setPairValuePreservingComments(pair, value, doc) {
 	const previousValue = pair.value;
+    console.log(`inital value is ${previousValue}, Setting value for key ${pair.key} to ${value}`);
 	if (YAML.stringify(previousValue) === YAML.stringify(value)) {
         console.log(`Value for key ${pair.key} is already up to date, skipping update.`);
         return;
     }
-    console.log(`Setting value for key ${YAML.stringify(pair.key)} to ${YAML.stringify(value)} from ${YAML.stringify(previousValue)}`);
-	const nextValue = doc.createNode(value);
+    const nextValue = doc.createNode(value);
     console.log(`Created new node for value: ${YAML.stringify(nextValue)}`);
 
 	if (previousValue) {
@@ -171,6 +216,34 @@ function applyPathUpdate(rootMap, path, value, doc) {
 		const key = restKeys[i];
 		const isLast = i === restKeys.length - 1;
         console.log(`Processing child key: ${key}`);
+
+		if (isArraySegment(key)) {
+			const arrayKeys = getArraySegmentKeys(key);
+			const currentSeq = ensureSeqForPair(currentPair, doc);
+			for (const arrayKey of arrayKeys) {
+				let arrayItem = findPairInSeqItem(currentSeq, arrayKey);
+
+				if (!arrayItem) {
+					arrayItem = appendSeqMapItem(
+						currentSeq,
+						arrayKey,
+						isLast ? doc.createNode(value) : doc.createNode({}),
+						doc
+					);
+				} else {
+					const arrayItemPair = findPairInMap(arrayItem, arrayKey);
+					if (isLast) {
+						setPairValuePreservingComments(arrayItemPair, value, doc);
+					} else {
+						ensureMapForPair(arrayItemPair, doc);
+					}
+				}
+			}
+
+			currentPair = null;
+			continue;
+		}
+
 		const currentMap = ensureMapForPair(currentPair, doc);
 
 		let nextPair = findPairInMap(currentMap, key);
@@ -198,7 +271,6 @@ function applyPathUpdate(rootMap, path, value, doc) {
 		currentPair = nextPair;
 	}
 }
-
 function main() {
 	const updates = parseInput(process.env.OVERRIDE_YAML);
 
