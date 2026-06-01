@@ -149,6 +149,29 @@ function findPairInSeqItem(seqNode, key) {
 	return seqNode.items.find((item) => YAML.isMap(item) && findPairInMap(item, key));
 }
 
+function ensureSeqChildMapPair(seqNode, key, doc) {
+	let childMap = seqNode.items.find((item) => YAML.isMap(item) && findPairInMap(item, key));
+
+	if (childMap) {
+		return findPairInMap(childMap, key);
+	}
+
+	if (seqNode.items.length > 0 && YAML.isMap(seqNode.items[0])) {
+		childMap = seqNode.items[0];
+	} else {
+		childMap = doc.createNode({});
+		seqNode.items.push(childMap);
+	}
+
+	let childPair = findPairInMap(childMap, key);
+	if (!childPair) {
+		childPair = new YAML.Pair(doc.createNode(key), doc.createNode({}));
+		childMap.items.push(childPair);
+	}
+
+	return childPair;
+}
+
 function appendSeqMapItem(seqNode, key, valueNode, doc) {
 	const mapNode = doc.createNode({});
 	mapNode.items.push(new YAML.Pair(doc.createNode(key), valueNode));
@@ -241,6 +264,20 @@ function applyPathUpdate(rootMap, path, value, doc) {
 			}
 
 			currentPair = null;
+			continue;
+		}
+
+		if (YAML.isSeq(currentPair.value)) {
+			const currentSeq = currentPair.value;
+			let seqChildPair = ensureSeqChildMapPair(currentSeq, key, doc);
+
+			if (isLast) {
+				setPairValuePreservingComments(seqChildPair, value, doc);
+			} else {
+				ensureMapForPair(seqChildPair, doc);
+			}
+
+			currentPair = seqChildPair;
 			continue;
 		}
 
