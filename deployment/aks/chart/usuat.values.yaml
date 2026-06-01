@@ -7,7 +7,7 @@ julu-deploy:
     app: 12.5.12
     version: 5.7.9
       # -- Application name updated
-      appName: Appname-version.1
+    appName: Appname-version.1
   # -- Application name
   appName: commitapp
   podResources:
