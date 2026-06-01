@@ -354,13 +354,6 @@ function applyPathUpdate(rootMap, path, value, doc) {
 
 function main() {
 	const updates = parseInput(process.env.OVERRIDE_YAML);
-	if (resolvedYamlOverride.trim()) {
-		console.log(`Applying OVERRIDE_YAML_FILE input from ${yamlOverrideFilePath}`);
-		applyYamlOverride(resolvedYamlOverride, configDoc);
-		fs.writeFileSync(outputPath, String(configDoc), 'utf8');
-		console.log(`Updated YAML written to ${outputPath}`);
-		return;
-	}	
 
 	for (const update of updates) {
         console.log(`Applying update key and value: ${update.path.join(':')} and ${update.value}`);
