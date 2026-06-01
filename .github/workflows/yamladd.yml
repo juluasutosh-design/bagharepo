@@ -5,11 +5,7 @@ on:
     inputs:
       OverrideYaml:
         description: 'Provide override yaml to update. Used for appending new configs and overriding existing values.'
-        required: true
-      OverwriteYamlFile:
-        description: 'Provide the repo-relative path to a YAML file to overwrite the config.'
-        required: false
-        default: ''          
+        required: true          
       environment_files:
         description: 'Provide environment specific yaml file name'
         type: choice
@@ -35,15 +31,6 @@ jobs:
         with:
           token: ${{ secrets.MYSECRET }}
       
-      - name: Check Inputs
-        run:  |
-          if [ -n "${{ github.event.inputs.OverrideYaml }}" ] && [ -n "${{ github.event.inputs.OverwriteYamlFile }}" ]; then
-            echo "Error: Both OverrideYaml and OverwriteYamlFile inputs are provided. Please provide only one."
-            exit 1
-          else
-            echo "Input validation passed. Proceeding with the workflow."
-          fi
-          
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -54,8 +41,7 @@ jobs:
 
       - name: Run the patching script
         # Pass OverrideYaml as an env var so multiline newlines are preserved.
-        env:
-          OVERWRITE_PATHS: ${{ github.event.inputs.OverwriteYamlFile }}     
+        env:   
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
           ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
           CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
