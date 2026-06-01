@@ -8,17 +8,6 @@ const fs = require('fs');
 
 // Input format: parent~child~child2~value;parent~child2~child3~value
 
-function readYamlOverrideFromFile(filePath) {
-	if (!filePath.trim()) {
-		return '';
-	}
-
-	if (!fs.existsSync(filePath)) {
-		throw new Error(`OVERRIDE_YAML_FILE not found: ${filePath}`);
-	}
-
-	return fs.readFileSync(filePath, 'utf8');
-}
 function parseInput(raw) {
 	const updates = [];
     if (raw.includes(';') === false) {
@@ -365,7 +354,6 @@ function applyPathUpdate(rootMap, path, value, doc) {
 
 function main() {
 	const updates = parseInput(process.env.OVERRIDE_YAML);
-	const resolvedYamlOverride = readYamlOverrideFromFile(process.env.OVERRIDE_PATH);
 	if (resolvedYamlOverride.trim()) {
 		console.log(`Applying OVERRIDE_YAML_FILE input from ${yamlOverrideFilePath}`);
 		applyYamlOverride(resolvedYamlOverride, configDoc);
