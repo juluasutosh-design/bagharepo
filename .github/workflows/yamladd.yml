@@ -37,7 +37,7 @@ jobs:
       
       - name: Check Inputs
         run:  |
-          if [ -n "${{ github.event.inputs.OverrideYaml }}" ] && [ -n "${{ github.event.inputs.OverwriteYamlFile }} ]; then
+          if [ -n "${{ github.event.inputs.OverrideYaml }}" ] && [ -n "${{ github.event.inputs.OverwriteYamlFile }}" ]; then
             echo "Error: Both OverrideYaml and OverwriteYamlFile inputs are provided. Please provide only one."
             exit 1
           else
