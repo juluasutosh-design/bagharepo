@@ -9,7 +9,7 @@ on:
       OverwriteYamlFile:
         description: 'Provide the repo-relative path to a YAML file to overwrite the config.'
         required: false
-        default: 'override.yml'          
+        default: ''          
       environment_files:
         description: 'Provide environment specific yaml file name'
         type: choice
