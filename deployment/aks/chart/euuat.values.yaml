@@ -22,3 +22,10 @@ julu-deploy:
   podResources:
     requests:
       cpu: 8
+  scaledobject:
+    enabled: true
+    triggers:
+      "[type]": datadog
+      metadata:
+        query: (avg:jvm.thread_count{env:dd-env, service:dd-service, market:dd-market,
+          version:dd-version, kube_cluster_name:dd-cluster} - 60)
