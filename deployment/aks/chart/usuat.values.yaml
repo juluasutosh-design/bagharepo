@@ -3,11 +3,11 @@ julu-deploy:
     # -- Environment for the application
     prouat
   region:
-    dnsZone: "azure-julu-np.net.com.eu"
-    app: 12.5.12
-    version: 5.7.9
-      # -- Application name updated
-    appName: Appname-version.1
+    - europe: { dns: juu.eu }
+    - us:
+        dns: julu.com.eu
+    - asia:
+        dns: julu.com.ap
   # -- Application name
   appName: commitapp
   podResources:
