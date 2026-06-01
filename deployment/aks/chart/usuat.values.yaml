@@ -6,17 +6,6 @@ julu-deploy:
     dnsZone: "azure-julu-np.net.com.eu"
     app: 12.5.12
     version: 5.7.9
-    pdb:
-      minAvailable:
-        # -- Enable minAvailable pdb for application
-        enabled: true
-        # -- minAvailable value for pdb
-        value: 1
-      maxUnavailable:
-        # -- Enable maxUnavailable pdb for application
-        enabled: true
-        # -- maxUnavailable value for pdb
-        value: 2
       # -- Application name updated
       appName: Appname-version.1
   # -- Application name
