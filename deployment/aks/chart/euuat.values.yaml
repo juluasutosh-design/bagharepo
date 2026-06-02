@@ -22,3 +22,5 @@ julu-deploy:
   podResources:
     requests:
       cpu: 8
+  regions:
+    isenabled: true
