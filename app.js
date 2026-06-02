@@ -8,36 +8,137 @@ const fs = require('fs');
 
 // Input format: parent~child~child2~value;parent~child2~child3~value
 
+
+function splitTopLevel(text, delimiter) {
+	const out = [];
+	let depth = 0;
+	let current = '';
+
+	for (const ch of text) {
+		if (ch === '[') {
+			depth += 1;
+			current += ch;
+			continue;
+		}
+
+		if (ch === ']') {
+			depth -= 1;
+			current += ch;
+			continue;
+		}
+
+		if (ch === delimiter && depth === 0) {
+			out.push(current.trim());
+			current = '';
+			continue;
+		}
+
+		current += ch;
+	}
+
+	if (current.trim()) {
+		out.push(current.trim());
+	}
+
+	return out;
+}
+
+function isArraySegment(segment) {
+	return typeof segment === 'string' && segment.startsWith('[') && segment.endsWith(']');
+}
+
+function getArraySegmentKeys(segment) {
+	return splitTopLevel(segment.slice(1, -1), ',')
+		.map((part) => part.trim())
+		.filter(Boolean);
+}
+
+function mergeObject(target, source) {
+	for (const [key, value] of Object.entries(source)) {
+		if (
+			value &&
+			typeof value === 'object' &&
+			!Array.isArray(value) &&
+			target[key] &&
+			typeof target[key] === 'object' &&
+			!Array.isArray(target[key])
+		) {
+			mergeObject(target[key], value);
+			continue;
+		}
+
+		target[key] = value;
+	}
+
+	return target;
+}
+
+function buildNestedObject(parts) {
+	if (parts.length < 2) {
+		throw new Error(`Invalid nested path: ${parts.join('~')}`);
+	}
+
+	if (parts.length === 2) {
+		return { [parts[0]]: parseValueText(parts[1]) };
+	}
+
+	return { [parts[0]]: buildNestedObject(parts.slice(1)) };
+}
+
+function parseValueText(valueText) {
+	const trimmed = valueText.trim();
+
+	if (!isArraySegment(trimmed)) {
+		return YAML.parse(trimmed);
+	}
+
+	const inner = trimmed.slice(1, -1).trim();
+	if (!inner) {
+		return [];
+	}
+
+	const semicolonParts = splitTopLevel(inner, ';');
+	const hasNestedPairs = semicolonParts.some((part) => splitTopLevel(part, '~').length > 1);
+	if (!hasNestedPairs) {
+		return getArraySegmentKeys(trimmed).map((item) => YAML.parse(item));
+	}
+
+	const result = {};
+	for (const nestedPart of semicolonParts) {
+		const nestedTokens = splitTopLevel(nestedPart, '~');
+		mergeObject(result, buildNestedObject(nestedTokens));
+	}
+
+	return result;
+}
+
 function parseInput(raw) {
 	const updates = [];
     if (raw.includes(';') === false) {
         console.error(`The input "${raw}" does not contain the delimiter ";",exiting....`)
         process.exit(1);
     }
-    console.log(`Parsing input: ${raw.split(';')}`);
-	for (const segment of raw.split(';')) {
+	const segments = splitTopLevel(raw, ';');
+    console.log(`Parsing input: ${segments}`);
+	for (const segment of segments) {
 		const trimmed = segment.trim();
 		if (!trimmed) {
 			continue;
 		}
         console.log(`Processing segment: ${trimmed}`);
-        if (String(trimmed.split('~')) === trimmed){
-            console.error(`The string "${trimmed}" does not contain the delimiter "~",exiting....`)
-            process.exit(1);
-        }
-		const parts = trimmed
-			.split('~')
+		const parts = splitTopLevel(trimmed, '~')
 			.map((part) => part.trim())
 			.filter(Boolean);
 
-		if (parts.length < 2) {
-			throw new Error(`Invalid input segment: ${trimmed}`);
-		}
+        if (parts.length < 2){
+            console.error(`The string "${trimmed}" does not contain the delimiter "~",exiting....`)
+            process.exit(1);
+        }
 
 		const valueText = parts.pop();
 		updates.push({
 			path: parts,
-			value: YAML.parse(valueText)
+			value: parseValueText(valueText)
 		});
 	}
 
@@ -64,21 +165,6 @@ function findPairInMap(mapNode, key) {
 	return mapNode.items.find(
 		(pair) => getPairKey(pair) === key
 	);
-}
-
-function isArraySegment(segment) {
-	return segment.startsWith('[') && segment.endsWith(']');
-}
-
-function getArraySegmentKey(segment) {
-	return segment.slice(1, -1).trim();
-}
-
-function getArraySegmentKeys(segment) {
-	return getArraySegmentKey(segment)
-		.split(',')
-		.map((part) => part.trim())
-		.filter(Boolean);
 }
 
 function findPairRecursive(node, key ) {
@@ -140,42 +226,28 @@ function ensureSeqForPair(pair, doc) {
 
 		pair.value = newSeq;
 	}
-
 	return pair.value;
 }
 
 function findPairInSeqItem(seqNode, key) {
-	return seqNode.items.find((item) => YAML.isMap(item) && findPairInMap(item, key));
-}
-
-function ensureSeqChildMapPair(seqNode, key, doc) {
-	let childMap = seqNode.items.find((item) => YAML.isMap(item) && findPairInMap(item, key));
-
-	if (childMap) {
-		return findPairInMap(childMap, key);
+	for (const item of seqNode.items) {
+		if (YAML.isMap(item)) {
+			const pair = findPairInMap(item, key);
+			if (pair) {
+				return pair;
+			}
+		}
 	}
-
-	if (seqNode.items.length > 0 && YAML.isMap(seqNode.items[0])) {
-		childMap = seqNode.items[0];
-	} else {
-		childMap = doc.createNode({});
-		seqNode.items.push(childMap);
-	}
-
-	let childPair = findPairInMap(childMap, key);
-	if (!childPair) {
-		childPair = new YAML.Pair(doc.createNode(key), doc.createNode({}));
-		childMap.items.push(childPair);
-	}
-
-	return childPair;
+	return null;
 }
 
 function appendSeqMapItem(seqNode, key, valueNode, doc) {
-	const mapNode = doc.createNode({});
-	mapNode.items.push(new YAML.Pair(doc.createNode(key), valueNode));
-	seqNode.items.push(mapNode);
-	return mapNode;
+	const itemMap = doc.createNode({});
+	const keyNode = doc.createNode(key);
+	const newPair = new YAML.Pair(keyNode, valueNode);
+	itemMap.items.push(newPair);
+	seqNode.items.push(itemMap);
+	return newPair;
 }
 
 function setPairValuePreservingComments(pair, value, doc) {
@@ -199,50 +271,10 @@ function setPairValuePreservingComments(pair, value, doc) {
 
 function appendPair(mapNode, key, valueNode, doc) {
     console.log(`Key not found, Appending new pair with key: ${key} and value: ${valueNode}`);
-	const keyNode = doc.createNode(key);
+    const keyNode = doc.createNode(key);
 	const newPair = new YAML.Pair(keyNode, valueNode);
 	mapNode.items.push(newPair);
 	return newPair;
-}
-
-function mergeIntoMap(targetMapNode, patchMapNode) {
-	for (const patchPair of patchMapNode.items) {
-		const patchKey = YAML.isScalar(patchPair.key)
-			? String(patchPair.key.value)
-			: String(patchPair.key);
-
-		const existingPair = findPairInMap(targetMapNode, patchKey);
-
-		if (!existingPair) {
-			targetMapNode.items.push(patchPair.clone());
-			continue;
-		}
-
-		const existingValue = existingPair.value;
-		const patchValue = patchPair.value;
-
-		if (YAML.isMap(existingValue) && YAML.isMap(patchValue)) {
-			mergeIntoMap(existingValue, patchValue);
-			continue;
-		}
-
-		// Replace scalars/sequences (including triggers arrays) with the override value.
-		existingPair.value = patchValue.clone();
-	}
-}
-
-function applyYamlOverride(rawYaml, doc) {
-	const patchDoc = YAML.parseDocument(rawYaml);
-
-	if (!YAML.isMap(patchDoc.contents)) {
-		throw new Error('OVERRIDE_YAML must be a YAML map/object.');
-	}
-
-	if (!YAML.isMap(doc.contents)) {
-		throw new Error('Target config root must be a YAML map/object.');
-	}
-
-	mergeIntoMap(doc.contents, patchDoc.contents);
 }
 
 function findAppendTarget(rootMap) {
@@ -258,7 +290,15 @@ function findAppendTarget(rootMap) {
 }
 
 function applyPathUpdate(rootMap, path, value, doc) {
-	const [firstKey, ...restKeys] = path;
+	let [firstKey, ...restKeys] = path;
+	if (isArraySegment(firstKey)) {
+		console.log(`First key ${firstKey} is an array segment. Expanding path updates.`);
+		for (const key of getArraySegmentKeys(firstKey)) {
+			applyPathUpdate(rootMap, [key, ...restKeys], value, doc);
+		}
+		return;
+	}
+
 	let first = findPairRecursive(rootMap, firstKey);
 	if (!first) {
         console.log(`Key not found : ${firstKey}. Going down the Yaml Tree`);
@@ -275,20 +315,18 @@ function applyPathUpdate(rootMap, path, value, doc) {
 	}
     // console.log(`current`,currentPair);
 	for (let i = 0; i < restKeys.length; i += 1) {
-		const key = restKeys[i];
+		let key = restKeys[i];
 		const isLast = i === restKeys.length - 1;
-        console.log(`Processing child key: ${key}`);
-
+        console.log(`Processing child key: ${key}, ${typeof(key)}`);
 		if (isArraySegment(key)) {
-			const arrayKeys = getArraySegmentKeys(key);
+			console.log(`The key is an array, Converting from string to Array`);
 			const currentSeq = ensureSeqForPair(currentPair, doc);
 			let nextCurrentPair = null;
-			for (const arrayKey of arrayKeys) {
-				let arrayItem = findPairInSeqItem(currentSeq, arrayKey);
-				let arrayItemPair;
 
-				if (!arrayItem) {
-					arrayItem = appendSeqMapItem(
+			for (const arrayKey of getArraySegmentKeys(key)) {
+				let seqPair = findPairInSeqItem(currentSeq, arrayKey);
+				if (!seqPair) {
+					seqPair = appendSeqMapItem(
 						currentSeq,
 						arrayKey,
 						isLast ? doc.createNode(value) : doc.createNode({}),
@@ -296,36 +334,20 @@ function applyPathUpdate(rootMap, path, value, doc) {
 					);
 				}
 
-				arrayItemPair = findPairInMap(arrayItem, arrayKey);
 				if (isLast) {
-					setPairValuePreservingComments(arrayItemPair, value, doc);
+					setPairValuePreservingComments(seqPair, value, doc);
 				} else {
-					ensureMapForPair(arrayItemPair, doc);
+					ensureMapForPair(seqPair, doc);
 				}
 
-				nextCurrentPair = arrayItemPair;
+				nextCurrentPair = seqPair;
 			}
 
 			currentPair = nextCurrentPair;
 			continue;
 		}
 
-		if (YAML.isSeq(currentPair.value)) {
-			const currentSeq = currentPair.value;
-			let seqChildPair = ensureSeqChildMapPair(currentSeq, key, doc);
-
-			if (isLast) {
-				setPairValuePreservingComments(seqChildPair, value, doc);
-			} else {
-				ensureMapForPair(seqChildPair, doc);
-			}
-
-			currentPair = seqChildPair;
-			continue;
-		}
-
 		const currentMap = ensureMapForPair(currentPair, doc);
-
 		let nextPair = findPairInMap(currentMap, key);
         console.log(`key ${key}:`, nextPair === undefined ? `not found` : `found value ${YAML.stringify(nextPair.value)}`);
 		if (!nextPair) {
