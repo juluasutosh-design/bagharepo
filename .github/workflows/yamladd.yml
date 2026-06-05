@@ -4,8 +4,40 @@ on:
   workflow_dispatch:
     inputs:
       OverrideYaml:
-        description: 'Provide override yaml to update. Used for appending new configs and overriding existing values.'
-        required: true          
+        description: 'Provide path-based override input, e.g. region~[europe]~dns~julu.com;'
+        required: true
+        default: 'region~[europe]~dns~julu.com'
+      Release:
+        description: 'Select Release , Used to create branch with name and also used in PR title'
+        type: choice
+        required: true
+        options:
+          - 2026-JAN-I
+          - 2026-JAN-II
+          - 2026-FEB-I
+          - 2026-FEB-II
+          - 2026-MAR-I
+          - 2026-MAR-II
+          - 2026-APR-I
+          - 2026-APR-II
+          - 2026-MAY-I
+          - 2026-MAY-II
+          - 2026-MAY-III
+          - 2026-JUN-I
+          - 2026-JUN-II
+          - 2026-JUL-I
+          - 2026-JUL-II
+          - 2026-AUG-I
+          - 2026-AUG-II
+          - 2026-SEP-I
+          - 2026-SEP-II
+          - 2026-OCT-I
+          - 2026-OCT-II
+          - 2026-OCT-III
+          - 2026-NOV-I
+          - 2026-NOV-II
+          - 2026-DEC-I
+          - 2026-DEC-II            
       environment_files:
         description: 'Provide environment specific yaml file name'
         type: choice
@@ -21,15 +53,15 @@ on:
         required: true
         options:
           - 'cname'
-          - 'deploy'        
+          - 'deploy'
 jobs:
   commit:
-    runs-on: ubuntu-latest
+    runs-on: 2-core
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.MYSECRET }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -40,13 +72,59 @@ jobs:
         run: npm install yaml
 
       - name: Run the patching script
-        # Pass OverrideYaml as an env var so multiline newlines are preserved.
-        env:   
-          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+        env:
+          OVERRIDE_PATHS: ${{ github.event.inputs.OverrideYaml }}
           ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
           CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
         run: node app.js
+      - name: Compare the changes
+        run:  |
+         if [ ${{ github.event.inputs.config_file_Type }} == "cname" ]; then
+           echo "Setting compare file for cname"
+           echo "dest=./deployment/aks/chart/cname/values.yaml" >> $GITHUB_ENV
+         elif [ ${{ github.event.inputs.config_file_Type }} == "deploy" ]; then
+            echo "Setting compare file for deploy"
+            echo "dest=./deployment/aks/chart/values.yaml" >> $GITHUB_ENV
+         else
+           echo "Invalid config file type provided"
+           exit 1
+         fi
+         #get the input here
+         echo "Input Override Yaml: ${{ github.event.inputs.OverrideYaml }}"
+         #split the input into key and final one will be value always
 
+         oldIFS=$IFS
+         IFS=';' read -ra OVERRIDE_ARRAY <<< "${{ github.event.inputs.OverrideYaml }}"
+         for item in "${OVERRIDE_ARRAY[@]}"; do
+            myItem="${item//~/.}"
+            echo "Removing the value from the item to get the key path: $myItem"
+            myItem="${myItem%.*}"
+            echo "Key path after removing the value: $myItem"
+            echo "Checking if Key exists in Afterconfig.yml"
+            IFS=',' read -ra envArray <<< "${{ github.event.inputs.environment_files }}"
+            for env in "${envArray[@]}"; do
+                YAML_FILE="./deployment/aks/chart/${env}\.values.yaml"
+                echo "Comparing the key path with the YAML file: $YAML_FILE"
+                if MY_PATH="$myItem" yq -e '
+                  path(eval("." + strenv(MY_PATH))) as $full_path 
+                  ($full_path[:-1]) as $parent_path 
+                  | ($full_path[-1]) as $target_key 
+                  | reduce $parent_path[] as $step (.; .[$step] | (.[]? // .)) 
+                  | has($target_key)
+                  ' "$YAML_FILE" > /dev/null 2>&1; then
+                echo "Path exists in the YAML file!"
+                else
+                  echo "Path does not exist or structure is broken."
+                  exit 1
+                fi
+            done
+      - name: fetch name
+        run:  |
+          if [[ "${{ github.event.inputs.environment_files }}" == "*uat*" ]]; then
+            export cycle="uat"
+          elif [[ "${{ github.event.inputs.environment_files }}" == "*prod*" ]]; then
+            export cycle="prod"
+          fi  
       - name: Commit and Push changes
         run: |
           git checkout -b feature/update-yaml-files
@@ -54,8 +132,8 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           if git diff --quiet; then
-            git commit -m "chore(ci):Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }}"
-            git push --set-upstream origin feature/update-yaml-files
+            git commit -m "chore(ci):Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }} in release ${{ github.event.inputs.Release }}"
+            git push --set-upstream origin feature/update-${cycle}-yaml-files-${{ github.event.inputs.Release }}
           else
             echo "No changes to commit"
           fi  
@@ -64,4 +142,3 @@ jobs:
           GH_TOKEN: ${{ secrets.MYSECRET }}
         run:  |
           gh pr create --title "chore(ci): Update yaml files ${{ github.event.inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base ${{ github.ref }} --head feature/update-yaml-files --reviewer ${{ github.actor}}
-
