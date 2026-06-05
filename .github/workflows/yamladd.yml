@@ -101,9 +101,13 @@ jobs:
             myItem="${myItem%.*}"
             echo "Key path after removing the value: $myItem"
             echo "Checking if Key exists in Afterconfig.yml"
-            IFS=',' read -ra envArray <<< "${{ github.event.inputs.environment_files }}"
-            for env in "${envArray[@]}"; do
-                YAML_FILE="./deployment/aks/chart/${env}\.values.yaml"
+            IFS=',' read -ra typeArray <<< "${{ github.event.inputs.config_file_Type }}"
+            for type in "${typeArray[@]}"; do
+                if [[ "$type" == "cname" ]]; then
+                  YAML_FILE="./deployment/aks/chart/cname/values.yaml"
+                elif [[ "$type" == "deploy" ]]; then
+                  YAML_FILE="./deployment/aks/chart/values.yaml"
+                fi
                 echo "Comparing the key path with the YAML file: $YAML_FILE"
                 if MY_PATH="$myItem" yq -e '
                   path(eval("." + strenv(MY_PATH))) as $full_path 
