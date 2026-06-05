@@ -56,12 +56,12 @@ on:
           - 'deploy'
 jobs:
   commit:
-    runs-on: 2-core
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.MYSECRET }}
       
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -89,11 +89,7 @@ jobs:
            echo "Invalid config file type provided"
            exit 1
          fi
-         #get the input here
          echo "Input Override Yaml: ${{ github.event.inputs.OverrideYaml }}"
-         #split the input into key and final one will be value always
-
-         oldIFS=$IFS
          IFS=';' read -ra OVERRIDE_ARRAY <<< "${{ github.event.inputs.OverrideYaml }}"
          for item in "${OVERRIDE_ARRAY[@]}"; do
             myItem="${item//~/.}"
@@ -122,6 +118,7 @@ jobs:
                   exit 1
                 fi
             done
+         done
       - name: fetch name
         run:  |
           if [[ "${{ github.event.inputs.environment_files }}" == "*uat*" ]]; then
