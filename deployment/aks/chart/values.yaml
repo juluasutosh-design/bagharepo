@@ -1,15 +1,16 @@
-apiVersion: v2
-name: myapp-cname
-description: julus test app
-type: application
-version: 1.0.0
-appVersion: "1"
-domain: julus.cn
-domainAlias: www.julus.cn
-preserveDomain: true
-
-dependencies:
-  - name: JULU-cname
-    version: "1.0.4"
-    repository: JULU-ACR
-    alias: JULU-cname
+julu-cname:
+  env: prod
+  dnsZone: ""
+  app: mytestapp
+  version: 265.2.9
+  domainPrefix: mytestapp
+  cNamePath: /(.*)
+  servicePort: 8000
+  customNginxAnnotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 100m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "240"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "240"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "240"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "32k"
+  tls:
+    enabled: true
