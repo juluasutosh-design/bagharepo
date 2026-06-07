@@ -14,3 +14,4 @@ julu-cname:
     nginx.ingress.kubernetes.io/proxy-buffer-size: "32k"
   tls:
     enabled: true
+    dns: ""
