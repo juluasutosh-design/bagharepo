@@ -1,6 +1,10 @@
 julu-deploy:
   env: prod
   dnsZone: ""
+  region:
+    - europe:
+        dns: ""
+    
   app: mytestapp
   version: 265.2.9
   domainPrefix: mytestapp
@@ -14,4 +18,3 @@ julu-deploy:
     nginx.ingress.kubernetes.io/proxy-buffer-size: "32k"
   tls:
     enabled: true
-    dns: ""
