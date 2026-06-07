@@ -106,12 +106,14 @@ jobs:
             for type in "${typeArray[@]}"; do
                 if [[ "$type" == "cname" ]]; then
                   YAML_FILE="./deployment/aks/chart/cname/values.yaml"
+                  root=julu-cname
                 elif [[ "$type" == "deploy" ]]; then
                   YAML_FILE="./deployment/aks/chart/values.yaml"
+                  root=julu-deploy
                 fi
                 echo "Comparing the key path with the YAML file: $YAML_FILE"
                 if MY_PATH="$item" yq -e '
-                  path(eval("." + strenv(MY_PATH))) as $full_path 
+                  path(eval(".${root}" + strenv(MY_PATH))) as $full_path 
                   ($full_path[:-1]) as $parent_path 
                   | ($full_path[-1]) as $target_key 
                   | reduce $parent_path[] as $step (.; .[$step] | (.[]? // .)) 
