@@ -87,17 +87,15 @@ jobs:
          elif [ ${{ github.event.inputs.config_file_Type }} == "deploy" ]; then
             echo "Setting compare file for deploy"
             echo "dest=./deployment/aks/chart/values.yaml" >> $GITHUB_ENV
-         else
-           echo "Invalid config file type provided"
-           exit 1
          fi
          echo "Input Override Yaml: ${{ github.event.inputs.OverrideYaml }}"
          IFS=';' read -ra OVERRIDE_ARRAY <<< "${{ github.event.inputs.OverrideYaml }}"
          for item in "${OVERRIDE_ARRAY[@]}"; do
-            myItem="${item//~/.}"
-            echo "Removing the value from the item to get the key path: $myItem"
-            myItem="${myItem%.*}"
-            echo "Key path after removing the value: $myItem"
+            echo "Extracting key path by removing the value part"            
+            item="${item%~*}"
+            echo "Key path after removing the value: $item"             
+            echo ${item} | sed -i 's/~/\./g'
+            echo "Item after replacing ~ with . : $item"
             echo "Checking if Key exists in Afterconfig.yml"
             IFS=',' read -ra typeArray <<< "${{ github.event.inputs.config_file_Type }}"
             for type in "${typeArray[@]}"; do
@@ -107,7 +105,7 @@ jobs:
                   YAML_FILE="./deployment/aks/chart/values.yaml"
                 fi
                 echo "Comparing the key path with the YAML file: $YAML_FILE"
-                if MY_PATH="$myItem" yq -e '
+                if MY_PATH="$item" yq -e '
                   path(eval("." + strenv(MY_PATH))) as $full_path 
                   ($full_path[:-1]) as $parent_path 
                   | ($full_path[-1]) as $target_key 
