@@ -72,11 +72,13 @@ jobs:
         run: npm install yaml
 
       - name: Run the patching script
-        env:
-          OVERRIDE_PATHS: ${{ github.event.inputs.OverrideYaml }}
+        # Pass OverrideYaml as an env var so multiline newlines are preserved.
+        env:   
+          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
           ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
           CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
         run: node app.js
+
       - name: Compare the changes
         run:  |
          if [ ${{ github.event.inputs.config_file_Type }} == "cname" ]; then
