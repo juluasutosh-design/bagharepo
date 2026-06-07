@@ -100,6 +100,7 @@ jobs:
             else
               echo "Key path does not contain ~, no replacement needed"
             fi
+            echo "Item after replacing ~ with . : $item"
             echo "Checking if Key exists in Afterconfig.yml"
             IFS=',' read -ra typeArray <<< "${{ github.event.inputs.config_file_Type }}"
             for type in "${typeArray[@]}"; do
