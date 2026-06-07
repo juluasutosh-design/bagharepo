@@ -1,4 +1,4 @@
-julu-cname:
+julu-deploy:
   env: prod
   dnsZone: ""
   app: mytestapp
