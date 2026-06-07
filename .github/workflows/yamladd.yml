@@ -125,19 +125,19 @@ jobs:
       - name: fetch name
         run:  |
           if [[ "${{ github.event.inputs.environment_files }}" == "*uat*" ]]; then
-            export cycle="uat"
+            echo "envs=$(echo uat)" >> $GITHUB_ENV
           elif [[ "${{ github.event.inputs.environment_files }}" == "*prod*" ]]; then
-            export cycle="prod"
+            echo "envs=$(echo prod)" >> $GITHUB_ENV
           fi  
       - name: Commit and Push changes
         run: |
-          git checkout -b feature/update-yaml-files
+          git checkout -b feature/update-${{ env.envs }}-yaml-files-${{ github.event.inputs.Release }}
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           if git diff --quiet; then
             git commit -m "chore(ci):Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }} in release ${{ github.event.inputs.Release }}"
-            git push --set-upstream origin feature/update-${cycle}-yaml-files-${{ github.event.inputs.Release }}
+            git push --set-upstream origin feature/update-${{ env.envs }}-yaml-files-${{ github.event.inputs.Release }}
           else
             echo "No changes to commit"
           fi  
@@ -145,4 +145,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MYSECRET }}
         run:  |
-          gh pr create --title "chore(ci): Update yaml files ${{ github.event.inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base ${{ github.ref }} --head feature/update-yaml-files --reviewer ${{ github.actor}}
+          gh pr create --title "chore(ci): Update yaml files ${{ github.event.inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base ${{ github.ref }} --head feature/update-${{ env.envs }}-yaml-files-${{ github.event.inputs.Release }} --reviewer ${{ github.actor}}
