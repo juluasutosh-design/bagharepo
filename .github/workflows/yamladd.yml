@@ -112,14 +112,25 @@ jobs:
                   root=julu-deploy
                 fi
                 echo "Comparing the key path with the YAML file: $YAML_FILE"
-                if MY_PATH="$item" ROOT_KEY="$root" yq -e '
-                eval("." + env(ROOT_KEY) + "." + env(MY_PATH)) | select(. != null)
-                ' "$YAML_FILE" > /dev/null 2>&1; then
-                echo "Path exists in the YAML file!"
-                else
-                echo "Path does not exist or structure is broken."
-                exit 1
-                fi
+                if ROOT_KEY="$root" MY_PATH="$item" yq -e '
+                  # 1. Determine if the path contains brackets
+                  if (env(MY_PATH) | test("\[.*?\]")) then
+                    # Format contains brackets: convert "a.[b].c" -> "a.*.b.c"
+                    (env(MY_PATH) | regexp.replace("\[(.*?)\]", "*.$1")) as $clean_path
+                    
+                    | eval("." + env(ROOT_KEY) + "." + $clean_path)
+                  else
+                    # Format is a normal dot path: evaluate ".k.a.b.c" directly
+                    eval("." + env(ROOT_KEY) + "." + env(MY_PATH))
+                  end
+                  # 2. Drop nulls to enforce validation
+                  | select(. != null)
+                  ' "$YAML_FILE" > /dev/null 2>&1; then
+                  echo "Path exists in the YAML file!"
+                  else
+                    echo "Path does not exist or structure is broken."
+                    exit 1
+                  fi
             done
          done
       - name: fetch name
