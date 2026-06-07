@@ -94,8 +94,12 @@ jobs:
             echo "Extracting key path by removing the value part"            
             item="${item%~*}"
             echo "Key path after removing the value: $item"             
-            echo ${item} | sed -i 's/~/\./g'
-            echo "Item after replacing ~ with . : $item"
+            if [[ "$item" == *"~"* ]]; then
+              echo "Key path contains ~, replacing with ."
+              item=$(echo ${item} | sed 's/~/\./g')
+            else
+              echo "Key path does not contain ~, no replacement needed"
+            fi
             echo "Checking if Key exists in Afterconfig.yml"
             IFS=',' read -ra typeArray <<< "${{ github.event.inputs.config_file_Type }}"
             for type in "${typeArray[@]}"; do
