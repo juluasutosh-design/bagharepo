@@ -1,6 +1,5 @@
 julu-deploy:
   env: prod
-  dnsZone: ""
   app: mytestapp
   version: 265.2.9
   domainPrefix: mytestapp
@@ -17,3 +16,5 @@ julu-deploy:
   triggers:
     - type:
         isTrue: ""
+  region:
+    dnsZone: ""
