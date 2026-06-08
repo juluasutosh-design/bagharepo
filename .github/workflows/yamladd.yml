@@ -91,7 +91,8 @@ jobs:
          echo "Input Override Yaml: ${{ github.event.inputs.OverrideYaml }}"
          IFS=';' read -ra OVERRIDE_ARRAY <<< "${{ github.event.inputs.OverrideYaml }}"
          for item in "${OVERRIDE_ARRAY[@]}"; do
-            if [[ -z "$item" ]]; then
+            # Skip empty chunk caused by trailing ';'
+            if [[ -z "${item// }" ]]; then
               continue
             fi
             echo "Extracting key path by removing the value part"            
@@ -115,20 +116,11 @@ jobs:
                   root=julu-deploy
                 fi
                 echo "Comparing the key path with the YAML file: $YAML_FILE"
-                if ROOT_KEY="$root" MY_PATH="$item" yq -e '
-                  # 1. Determine if the path contains brackets
-                  if (env(MY_PATH) | test("\[.*?\]")) then
-                    # Format contains brackets: convert "a.[b].c" -> "a.*.b.c"
-                    (env(MY_PATH) | gsub("\\[(.*?)\\]"; "*.$1")) as $clean_path
-                    
-                    | eval("." + env(ROOT_KEY) + "." + $clean_path)
-                  else
-                    # Format is a normal dot path: evaluate ".k.a.b.c" directly
-                    eval("." + env(ROOT_KEY) + "." + env(MY_PATH))
-                  end
-                  # 2. Drop nulls to enforce validation
-                  | select(. != null)
-                  ' "$YAML_FILE" > /dev/null 2>&1; then
+                clean_path=$(printf '%s' "$item" | sed -E 's/\[([^]]+)\]/*.\1/g; s/\.\./\./g; s/^\.//; s/\.$//')
+                yq_expr=".$root.$clean_path | select(. != null)"
+                echo "yq expression: $yq_expr"
+
+                if yq -e "$yq_expr" "$YAML_FILE" > /dev/null 2>&1; then
                   echo "Path exists in the YAML file!"
                   else
                     echo "Path does not exist or structure is broken."
