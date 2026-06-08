@@ -92,6 +92,8 @@ jobs:
           fi  
       - name: Compare the changes
         run:  |
+      - name: Compare the changes
+        run:  |
          if [ ${{ github.event.inputs.config_file_Type }} == "cname" ]; then
            echo "Setting compare file for cname"
            echo "dest=./deployment/aks/chart/cname/values.yaml" >> $GITHUB_ENV
@@ -102,6 +104,9 @@ jobs:
          echo "Input Override Yaml: ${{ github.event.inputs.OverrideYaml }}"
          IFS=';' read -ra OVERRIDE_ARRAY <<< "${{ github.event.inputs.OverrideYaml }}"
          for item in "${OVERRIDE_ARRAY[@]}"; do
+            if [[ -z "$item" ]]; then
+              continue
+            fi
             echo "Extracting key path by removing the value part"            
             item="${item%~*}"
             echo "Key path after removing the value: $item"             
@@ -127,7 +132,7 @@ jobs:
                   # 1. Determine if the path contains brackets
                   if (env(MY_PATH) | test("\[.*?\]")) then
                     # Format contains brackets: convert "a.[b].c" -> "a.*.b.c"
-                    (env(MY_PATH) | regexp.replace("\[(.*?)\]", "*.$1")) as $clean_path
+                    (env(MY_PATH) | gsub("\\[(.*?)\\]"; "*.$1")) as $clean_path
                     
                     | eval("." + env(ROOT_KEY) + "." + $clean_path)
                   else
