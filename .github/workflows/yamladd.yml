@@ -79,7 +79,10 @@ jobs:
           CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
         run: node app.js
       - name: push
-        run: git push 
+        run:  |
+          git add .
+          git commit -m "myPush"
+          git push
       - name: Compare the changes
         run:  |
          if [ ${{ github.event.inputs.config_file_Type }} == "cname" ]; then
