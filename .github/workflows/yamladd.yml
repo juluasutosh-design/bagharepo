@@ -78,11 +78,18 @@ jobs:
           ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
           CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
         run: node app.js
-      - name: push
-        run:  |
+      - name: Commit and Push changes_1
+        run: |
+          git checkout -b feature/update-yaml-files-${{ github.event.inputs.Release }}
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "myPush"
-          git push
+          if git diff --quiet; then
+            git commit -m "chore(ci):Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }} in release ${{ github.event.inputs.Release }}"
+            git push --set-upstream origin feature/update-yaml-files-${{ github.event.inputs.Release }}
+          else
+            echo "No changes to commit"
+          fi  
       - name: Compare the changes
         run:  |
          if [ ${{ github.event.inputs.config_file_Type }} == "cname" ]; then
