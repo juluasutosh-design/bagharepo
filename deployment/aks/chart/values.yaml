@@ -4,7 +4,6 @@ julu-deploy:
   region:
     - europe:
         dns: ""
-    
   app: mytestapp
   version: 265.2.9
   domainPrefix: mytestapp
