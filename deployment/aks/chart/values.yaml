@@ -1,5 +1,7 @@
 julu-deploy:
   env: prod
+  secrets:
+    - secret: ""
   app: mytestapp
   version: 265.2.9
   domainPrefix: mytestapp
@@ -18,3 +20,4 @@ julu-deploy:
         isTrue: ""
   region:
     dnsZone: ""
+    
