@@ -27,22 +27,6 @@ jobs:
         with:
           ref: ${{ github.ref }}
           token: ${{ secrets.MYSECRET }}
-      - name: configure
-        run:  |
-          ls -l
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
-          git branch
-          echo "I am bagha" >> myfile.txt
-          git add .
-          git commit -m "added bagha file"
-          git push origin 
-      - name: print
-        run:  |
-          for i in "${array[@]}"
-            do
-              echo $i
-            done  
       - name: echo
         run:  |
           echo -e "\e[31>mSelect ran\e[0m"
