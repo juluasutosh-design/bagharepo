@@ -55,8 +55,7 @@ jobs:
     steps:
       - name: echo
         run:  |
-          echo -e "\e[32>mSelect ran\e[0m"    
-          sleep 40000
+          exit 1
   Preview_step2:
     needs:  [ Preview_step1] 
     if: ${{ inputs.Preview_2 && (needs.Preview_step1.result != 'failure') && !cancelled() }}
