@@ -51,6 +51,7 @@ jobs:
                echo "bagha"
              else
                echo "false bagha"
+             fi  
              echo "${{ inputs.Preview_2}}"
              echo "${{ needs.Preview_step1.result == 'success'}}"
              echo "${{ needs.Preview_step1.result == 'skipped' }}"
