@@ -39,7 +39,7 @@ jobs:
     steps:
       - name: echo
         run:  |
-          exit 1
+          exit  0
   Preview_step2:
     needs:  [ Preview_step1] 
     if:  inputs.Preview_2 && (needs.Preview_step1.result != 'failure' || needs.Preview_step1.result != 'skipped') 
