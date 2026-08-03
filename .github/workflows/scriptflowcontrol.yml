@@ -19,7 +19,7 @@ on:
 jobs:
       
   Select:
-    if: ${{ inputs.Select && !cancelled() }}
+    if: ${{ inputs.Select }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -39,7 +39,7 @@ jobs:
     steps:
       - name: echo
         run:  |
-          exit  0
+          exit  1
   Preview_step2:
     needs:  [ Preview_step1] 
     if:  inputs.Preview_2 && (needs.Preview_step1.result != 'failure' || needs.Preview_step1.result != 'skipped') 
