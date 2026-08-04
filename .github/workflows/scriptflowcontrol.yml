@@ -39,15 +39,15 @@ jobs:
     steps:
       - name: check
         run:  |
-          if [[ needs.Select.result == 'failure' || needs.Select.result == 'skipped' ]]; then
-            echo "The job 'Select' is either skipped/cancelled
+          if [[ needs.Select.result == 'skipped' ]]; then
+            echo "The job 'Select' is skipped"
             exit 0
           else 
             echo "continuing with current job"
           fi  
       - name: echo
         run:  |
-          exit  1
+          exit  0
   Preview_step2:
     needs:  [ Preview_step1]
     if: inputs.Preview_2
@@ -55,8 +55,8 @@ jobs:
     steps:
       - name: check
         run:  |
-          if [[ needs.Preview_step1.result == 'failure' || needs.Preview_step1.result == 'skipped' ]]; then
-            echo "The job 'Preview_step1' is either skipped/cancelled
+          if [[ needs.Preview_step1.result == 'skipped' ]]; then
+            echo "The job 'Preview_step1' is  skipped"
             exit 0
           else 
             echo "continuing with current job"
