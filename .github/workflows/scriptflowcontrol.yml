@@ -19,7 +19,7 @@ on:
 jobs:
       
   Select:
-    if: inputs.Select && !cancelled()
+    if: inputs.Select
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -33,18 +33,34 @@ jobs:
 
 
   Preview_step1:
-    needs:  [ Select] 
-    if:  (inputs.Preview  && (needs.Select.result == 'success' || (needs.Select.result == 'skipped' && needs.Select.result == 'failure' ))) && !cancelled()
+    needs:  [ Select]
+    if: inputs.Preview 
     runs-on: ubuntu-latest
     steps:
+      - name: check
+        run:  |
+          if [[ needs.Select.result == 'failure' || needs.Select.result == 'skipped' ]]; then
+            echo "The job 'Select' is either skipped/cancelled
+            exit 0
+          else 
+            echo "continuing with current job"
+          fi  
       - name: echo
         run:  |
           exit  1
   Preview_step2:
-    needs:  [ Preview_step1] 
-    if:  (inputs.Preview_2 && (needs.Preview_step1.result == 'success' || (needs.Preview_step1.result == 'skipped' && needs.Preview_step1.result == 'failure' ))) && !cancelled()
+    needs:  [ Preview_step1]
+    if: inputs.Preview_2
     runs-on: ubuntu-latest
     steps:
+      - name: check
+        run:  |
+          if [[ needs.Preview_step1.result == 'failure' || needs.Preview_step1.result == 'skipped' ]]; then
+            echo "The job 'Preview_step1' is either skipped/cancelled
+            exit 0
+          else 
+            echo "continuing with current job"
+          fi  
       - name: echo
         run:  |
              if [[ (inputs.Preview_2 && (needs.Preview_step1.result == 'success' )) && !cancelled()   ]]; then
