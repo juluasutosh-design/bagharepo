@@ -47,7 +47,7 @@ jobs:
           fi  
       - name: echo
         run:  |
-          exit  0
+          exit  1
   Preview_step2:
     needs:  [ Preview_step1]
     if: inputs.Preview_2 && !cancelled()
