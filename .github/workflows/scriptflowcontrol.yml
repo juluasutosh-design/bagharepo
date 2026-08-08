@@ -39,8 +39,9 @@ jobs:
     steps:
       - name: check
         run:  |
-          if [[ '${{ needs.Select.result }}' == 'skipped' || '${{ needs.Select.result }}' == 'failure' ]]; then
+          if [[  '${{ needs.Select.result }}' == 'failure' ]]; then
             echo "The job 'Select' is either skipped/failed"
+            exit 1
           else 
             echo "continuing with current job"
           fi  
@@ -54,7 +55,7 @@ jobs:
     steps:
       - name: check
         run:  |
-          if [[ '${{ needs.Preview_step1.result }}' == 'skipped' || '${{ needs.Preview_step1.result }}' == 'failure' ]]; then
+          if [[  '${{ needs.Preview_step1.result }}' == 'failure' ]]; then
             echo "The job 'Preview_step1' is  either skipped/failed"
             exit 1
           else 
