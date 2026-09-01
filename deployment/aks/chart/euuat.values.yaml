@@ -22,3 +22,22 @@ julu-deploy:
   podResources:
     requests:
       cpu: 8
+  scaledobject:
+    scaledObject:
+      triggers:
+        - type: datadog
+          metricType: Value
+          metadata:
+            query: avg:kubernetes.memory.usage_pct{kube_namespace:dd-namespace,kube_deployment:dd-deployment}
+              * 100
+            queryValue: "80"
+            activationQueryValue: "40"
+        - type: datadog
+          metricType: Value
+          metadata:
+            query: ((sum:kubernetes.cpu.usage.total{kube_namespace:dd-namespace,kube_deployment:dd-deployment}
+              / 1000000000) /
+              sum:kubernetes.cpu.limits{kube_namespace:dd-namespace,kube_deployment:dd-deployment})
+              * 100
+            queryValue: "80"
+            activationQueryValue: "40"
