@@ -13,3 +13,60 @@ julu-deploy:
   podResources:
     requests:
       cpu: 8    
+  scaledobject:
+    scaledObject:
+      triggers:
+        - type: prometheus
+          metricType: Value
+          metadata:
+            serverAddress: xyz
+            query: |-
+              sum(
+                rate(
+                  container_cpu_time_s_total{
+                    k8s_cluster_name="cluster",
+                    k8s_deployment_name="dd-deployment",
+                    market="dd-market"
+                  }[1m]
+                )
+              )
+              /
+              clamp_min(
+                sum(
+                  k8s_container_cpu_request__cpu_{
+                    k8s_cluster_name="dd-cluster",
+                    k8s_deployment_name="dd-deployment",
+                    market="dd-market"
+                  }
+                ),
+                1
+              )*100
+        - type: prometheus
+          metricType: Value
+          metadata:
+            serverAddress: xyz
+            query: |-
+              sum(
+                avg_over_time(
+                  k8s_pod_memory_usage_By{
+                    k8s_cluster_name="dd-cluster",
+                    k8s_deployment_name="dd-deployment",
+                    market="dd-market"
+                  }[1m]
+                )
+              )
+              /
+              clamp_min(
+                sum(
+                  avg_over_time(
+                    k8s_container_memory_limit_By{
+                      k8s_cluster_name="dd-cluster",
+                      k8s_deployment_name="dd-deployment",
+                      market="dd-market"
+                    }[1m]
+                  )
+                ),
+                1
+              ) * 100
+            threshold: "80"
+            authModes: bearer      
