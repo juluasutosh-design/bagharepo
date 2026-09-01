@@ -5,8 +5,7 @@ julu-deploy:
   region:
     dnsZone: "azure-julu-np.net.com.eu"
     app: 12.5.12
-    version: 5.7.9
-      # -- Application name updated
+    version: 5.7.9 # -- Application name updated
     appName: Appname-version.1
   # -- Application name
   appName: commitapp
@@ -41,5 +40,3 @@ julu-deploy:
                 ),
                 1
               )*100
-            threshold: "80"
-            authModes: bearer      
