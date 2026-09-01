@@ -8,16 +8,6 @@ on:
         type: string
         required: true
         default: "region~[europe]~dns~julu.com"
-      OverrideValueNumber:
-        description: "Optional numeric value input"
-        type: number
-        required: false
-        default: 0
-      OverrideValueJson:
-        description: 'Optional JSON value as string, e.g. {"replicas":2,"enabled":true}'
-        type: string
-        required: false
-        default: "{}"
       Release:
         description: "Select Release , Used to create branch with name and also used in PR title"
         type: choice
@@ -82,19 +72,243 @@ jobs:
       - name: Install dependencies
         run: npm install yaml
 
+      - name: Install yq
+        run: |
+          YQ_VERSION="v4.44.3"
+          sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      - name: Validate input against referenceChart using yq
+        env:
+          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REF_FILE="./referenceChart.yml"
+          if [[ ! -f "$REF_FILE" ]]; then
+            echo "referenceChart.yml not found"
+            exit 1
+          fi
+
+          split_top_level() {
+            local text="$1"
+            local delim="$2"
+            local -n out_ref=$3
+            out_ref=()
+
+            local square=0
+            local curly=0
+            local paren=0
+            local quote=""
+            local escaped=0
+            local current=""
+            local ch=""
+
+            for ((i=0; i<${#text}; i++)); do
+              ch="${text:$i:1}"
+
+              if [[ -n "$quote" ]]; then
+                current+="$ch"
+                if (( escaped == 1 )); then
+                  escaped=0
+                  continue
+                fi
+                if [[ "$ch" == "\\" ]]; then
+                  escaped=1
+                  continue
+                fi
+                if [[ "$ch" == "$quote" ]]; then
+                  quote=""
+                fi
+                continue
+              fi
+
+              if [[ "$ch" == '"' || "$ch" == "'" ]]; then
+                quote="$ch"
+                current+="$ch"
+                continue
+              fi
+
+              if [[ "$ch" == "[" ]]; then
+                ((square+=1))
+              elif [[ "$ch" == "]" ]]; then
+                ((square>0)) && ((square-=1)) || true
+              elif [[ "$ch" == "{" ]]; then
+                ((curly+=1))
+              elif [[ "$ch" == "}" ]]; then
+                ((curly>0)) && ((curly-=1)) || true
+              elif [[ "$ch" == "(" ]]; then
+                ((paren+=1))
+              elif [[ "$ch" == ")" ]]; then
+                ((paren>0)) && ((paren-=1)) || true
+              fi
+
+              if [[ "$ch" == "$delim" && $square -eq 0 && $curly -eq 0 && $paren -eq 0 ]]; then
+                out_ref+=("$current")
+                current=""
+                continue
+              fi
+
+              current+="$ch"
+            done
+
+            if [[ -n "${current// }" ]]; then
+              out_ref+=("$current")
+            fi
+          }
+
+          trim() {
+            local var="$1"
+            var="${var#"${var%%[![:space:]]*}"}"
+            var="${var%"${var##*[![:space:]]}"}"
+            printf '%s' "$var"
+          }
+
+          infer_value_kind() {
+            local value
+            value="$(trim "$1")"
+            if [[ "$value" =~ ^\[.*\]$ ]]; then
+              echo "array"
+            elif [[ "$value" =~ ^\{.*\}$ ]]; then
+              echo "object"
+            else
+              echo "scalar"
+            fi
+          }
+
+          validate_path_and_type() {
+            local path_str="$1"
+            local value_str="$2"
+
+            local path_parts=()
+            split_top_level "$path_str" "~" path_parts
+
+            if [[ ${#path_parts[@]} -lt 1 ]]; then
+              echo "Invalid path: $path_str"
+              return 1
+            fi
+
+            local first
+            first="$(trim "${path_parts[0]}")"
+            local expr=".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\""
+
+            for ((p=1; p<${#path_parts[@]}; p++)); do
+              local seg
+              seg="$(trim "${path_parts[$p]}")"
+              expr="$expr.\"$seg\""
+            done
+
+            if ! yq -e "$expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
+              echo "Path not found in referenceChart.yml: $path_str"
+              return 1
+            fi
+
+            local actual_kind
+            actual_kind="$(infer_value_kind "$value_str")"
+
+            if [[ "$actual_kind" == "array" ]]; then
+              yq -e "$expr | select(tag == \"!!seq\")" "$REF_FILE" >/dev/null 2>&1 || {
+                echo "Type mismatch at $path_str: expected array in referenceChart.yml"
+                return 1
+              }
+            elif [[ "$actual_kind" == "object" ]]; then
+              yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1 || {
+                echo "Type mismatch at $path_str: expected object in referenceChart.yml"
+                return 1
+              }
+            else
+              yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1 || {
+                echo "Type mismatch at $path_str: expected scalar in referenceChart.yml"
+                return 1
+              }
+            fi
+          }
+
+          segments=()
+          split_top_level "$OVERRIDE_YAML" ";" segments
+
+          if [[ ${#segments[@]} -eq 0 ]]; then
+            echo "No override segments found"
+            exit 1
+          fi
+
+          for segment in "${segments[@]}"; do
+            segment="$(trim "$segment")"
+            [[ -z "$segment" ]] && continue
+
+            parts=()
+            split_top_level "$segment" "~" parts
+            if [[ ${#parts[@]} -lt 2 ]]; then
+              echo "Invalid override segment: $segment"
+              exit 1
+            fi
+
+            value="$(trim "${parts[${#parts[@]}-1]}")"
+            unset 'parts[${#parts[@]}-1]'
+
+            path=""
+            for part in "${parts[@]}"; do
+              part="$(trim "$part")"
+              if [[ -z "$path" ]]; then
+                path="$part"
+              else
+                path+="~$part"
+              fi
+            done
+
+            # Expand [a,b] path segments if provided.
+            if [[ "$path" =~ \[.*\] ]]; then
+              expanded=()
+              split_top_level "$path" "~" path_tokens
+              expand_list=("")
+              for token in "${path_tokens[@]}"; do
+                token="$(trim "$token")"
+                if [[ "$token" =~ ^\[.*\]$ ]]; then
+                  inner="${token:1:${#token}-2}"
+                  split_top_level "$inner" "," inner_items
+                  next_expand=()
+                  for prefix in "${expand_list[@]}"; do
+                    for item in "${inner_items[@]}"; do
+                      item="$(trim "$item")"
+                      if [[ -z "$prefix" ]]; then
+                        next_expand+=("$item")
+                      else
+                        next_expand+=("$prefix~$item")
+                      fi
+                    done
+                  done
+                  expand_list=("${next_expand[@]}")
+                else
+                  for i in "${!expand_list[@]}"; do
+                    if [[ -z "${expand_list[$i]}" ]]; then
+                      expand_list[$i]="$token"
+                    else
+                      expand_list[$i]+="~$token"
+                    fi
+                  done
+                fi
+              done
+              expanded=("${expand_list[@]}")
+              for exp_path in "${expanded[@]}"; do
+                validate_path_and_type "$exp_path" "$value"
+              done
+            else
+              validate_path_and_type "$path" "$value"
+            fi
+          done
+
+          echo "yq validation passed for OverrideYaml"
+
       - name: Run the patching script
         # Pass OverrideYaml as an env var so multiline newlines are preserved.
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
-          OVERRIDE_VALUE_NUMBER: ${{ github.event.inputs.OverrideValueNumber }}
-          OVERRIDE_VALUE_JSON: ${{ github.event.inputs.OverrideValueJson }}
           ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
           CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
         run: node app.js
 
-      - name: Validation summary
-        run: |
-          echo "Input has been validated and applied by app.js against referenceChart.yml"
       - name: fetch name
         run: |
           if [[ "${{ github.event.inputs.environment_files }}" == "*uat*" ]]; then
