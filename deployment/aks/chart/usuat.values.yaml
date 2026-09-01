@@ -5,18 +5,17 @@ julu-deploy:
   region:
     dnsZone: "azure-julu-np.net.com.eu"
     app: 12.5.12
-    version: 5.7.9
-      # -- Application name updated
+    version: 5.7.9 # -- Application name updated
     appName: Appname-version.1
   # -- Application name
   appName: commitapp
   podResources:
     requests:
-      cpu: 8    
+      cpu: 8
   scaledobject:
     scaledObject:
       triggers:
-        - type: prometheus
+        - type: datadog
           metricType: Value
           metadata:
             serverAddress: xyz
@@ -41,6 +40,8 @@ julu-deploy:
                 ),
                 1
               )*100
+            threshold: "80"
+            authModes: bearer
         - type: prometheus
           metricType: Value
           metadata:
@@ -69,4 +70,4 @@ julu-deploy:
                 1
               ) * 100
             threshold: "80"
-            authModes: bearer      
+            authModes: bearer
