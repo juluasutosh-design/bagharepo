@@ -7,3 +7,5 @@ julu-cname:
     app: juluapp
     version: 5.7.9 # -- Application name updated
     appName: Appname-version.2
+  scaledobject:
+    enabled: true
