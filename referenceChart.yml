@@ -1,0 +1,167 @@
+julu-deploy:
+  global:
+    releaseVersion: "1"
+    env: prod
+    juluAppName: "exp"
+    ddServiceName: "exp-ui"
+    reCreatePod:
+      enabled: true
+    image:
+      name: exp-ui
+      tag: 268.2.7
+      registry: xyz.azurecr.io
+    minReplicas: 2
+    maxReplicas: 8
+    
+  envConfig:
+    ENVIRONMENT: prod
+    DD_TRACE_DB_CLIENT_SPLIT_BY_INSTANCE: 'true'
+    DD_JMXFETCH_ENABLED: true
+    DD_TRACE_SPLIT_BY_TAGS: true
+    DD_HTTP_CLIENT_TAG_QUERY_STRING: true
+    DD_SERVICE_MAPPING: "exp-ui"
+  ddApm:
+    enabled: true
+  ddLogs:
+    enabled: true
+  ddHpa:
+    enabled: false
+  ddSourcePipeline: 
+
+  podResources:
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 2Gi
+
+  ports: 8087
+  
+  scaledobject:
+    enabled: true
+    external-secrets:
+      enabled: true
+      target:
+        name: "coralogix-auth-bearer-token"
+    
+      secretStoreRef:
+        # Leave empty - defaults to .Release.Name in the template
+        name: ""
+        kind: SecretStore
+      data:
+         - secretkey: bearerToken
+           remoteRef:
+             key: "cx"
+    secret:
+      # If enabled, a secret will be created with the provided values
+      enabled: false
+      # Ignored if enabled: false
+      # if you want to use an existing secret, provide the name here
+      existingSecret: "tukeney-secret"
+      # E.g. for Coralogix use
+      #  existingSecret: "coralogix-auth-bearer-token"
+    
+      # If you want to provide literal values to be used in the secret, provide them here
+      # Coralogix implementation does not allow storing key/secret in values.yaml, so these values will be ignored if you are using Coralogix
+      # Ignored if enabled: false
+      apiKey: ""
+      appKey: ""
+      datadogSite: ""
+    # -- Enable KEDA scaledObject
+    scaledObject:
+      spec:
+        minReplicaCount: 2
+        maxReplicaCount: 8
+        advanced:
+          horizontalPodAutoscalerConfig:
+            behavior:
+              scaleDown:
+                stabilizationWindowSeconds: 300
+              scaleUp:
+                stabilizationWindowSeconds: 120
+      triggers:
+        - type: prometheus
+          metricType: "Value"
+          metadata:
+            serverAddress: "xyz"
+            query: |
+              sum(
+                rate(
+                  container_cpu_time_s_total{
+                    k8s_cluster_name="dd-cluster",
+                    k8s_deployment_name="dd-deployment",
+                    market="dd-market"
+                  }[1m]
+                )
+              )
+              /
+              clamp_min(
+                sum(
+                  k8s_container_cpu_request__cpu_{
+                    k8s_cluster_name="dd-cluster",
+                    k8s_deployment_name="dd-deployment",
+                    market="dd-market"
+                  }
+                ),
+                1
+              )*100
+            threshold: "80" # Scale out when > 80% cpu use ratio; adjust to your SLO/SLA
+            authModes: "bearer" # Enable bearer auth mode on the Prometheus scaler:
+        - type: prometheus
+          metricType: "Value"
+          metadata:
+            serverAddress: "xyz"
+            query: |
+                  sum(
+                    avg_over_time(
+                      k8s_pod_memory_usage_By{
+                        k8s_cluster_name="dd-cluster",
+                        k8s_deployment_name="dd-deployment",
+                        market="dd-market"
+                      }[1m]
+                    )
+                  )
+                  /
+                  clamp_min(
+                    sum(
+                      avg_over_time(
+                        k8s_container_memory_limit_By{
+                          k8s_cluster_name="dd-cluster",
+                          k8s_deployment_name="dd-deployment",
+                          market="dd-market"
+                        }[1m]
+                      )
+                    ),
+                    1
+                  ) * 100
+            threshold: "80" # Scale out when > 80% cpu use ratio; adjust to your SLO/SLA
+            authModes: "bearer" # Enable bearer auth mode on the Prometheus scaler:
+
+  
+  livenessProbe:
+    path: /health
+    initialDelaySeconds: 60
+    periodSeconds: 60
+  readinessProbe:
+    path: /health
+    initialDelaySeconds: 60
+    periodSeconds: 60
+  ingress:
+    hostName: "ddm-ui"
+    path: /(.*)
+    dnsZone: ""
+  runAsNonRoot:
+    enabled: false
+  rootFs:
+    readOnly: false
+  pdb:
+    minAvailable:
+      enabled: false
+      value: 1
+    maxUnavailable:
+      enabled: false
+      value: 1    
+
+  customAppAnnotations:
+    instrumentation.opentelemetry.io/inject-nodejs: "otel/instrumentation"
