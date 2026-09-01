@@ -22,3 +22,9 @@ julu-deploy:
   podResources:
     requests:
       cpu: 8
+  scaledobject:
+    enabled: true
+    external-secrets:
+      enabled: true
+      target:
+        name: coralogix-auth-bearer-token
