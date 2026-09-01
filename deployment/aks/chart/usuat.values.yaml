@@ -5,11 +5,42 @@ julu-deploy:
   region:
     dnsZone: "azure-julu-np.net.com.eu"
     app: 12.5.12
-    version: 5.7.9
-      # -- Application name updated
+    version: 5.7.9 # -- Application name updated
     appName: Appname-version.1
   # -- Application name
   appName: commitapp
   podResources:
     requests:
-      cpu: 8    
+      cpu: 8
+  scaledobject:
+    scaledObject:
+      triggers:
+        - type: prometheus
+          metricType: Value
+          metadata:
+            serverAddress: xyz
+            query: |-
+              sum(
+                avg_over_time(
+                  k8s_pod_memory_usage_By{
+                    k8s_cluster_name="dd-cluster",
+                    k8s_deployment_name="dd-deployment",
+                    market="dd-market"
+                  }[1m]
+                )
+              )
+              /
+              clamp_min(
+                sum(
+                  avg_over_time(
+                    k8s_container_memory_limit_By{
+                      k8s_cluster_name="dd-cluster",
+                      k8s_deployment_name="dd-deployment",
+                      market="dd-market"
+                    }[1m]
+                  )
+                ),
+                1
+              ) * 100
+            threshold: "80"
+            authModes: bearer
