@@ -22,3 +22,5 @@ julu-deploy:
   podResources:
     requests:
       cpu: 8
+  keyVault:
+    refreshInterval: 15m
