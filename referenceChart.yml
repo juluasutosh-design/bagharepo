@@ -12,6 +12,15 @@ julu-deploy:
       registry: xyz.azurecr.io
     minReplicas: 2
     maxReplicas: 8
+  keyVault:
+  # -- Keyvault Name to pull secrets for the application
+    name: mykv
+  # -- Service Principal to use to pull secrets from Keyvault
+    spName: mysp
+  # -- Refresh interval for the secrets to be pulled from Keyvault
+    refreshInterval: "5m"
+  # -- External Secret Version
+    version: v1beta1      
     
   ddApm:
     enabled: true
@@ -172,13 +181,4 @@ julu-deploy:
       value: 1    
 
   customAppAnnotations:
-    instrumentation.opentelemetry.io/inject-nodejs: "otel/instrumentation"
-  keyVault:
-  # -- Keyvault Name to pull secrets for the application
-  name: mykv
-  # -- Service Principal to use to pull secrets from Keyvault
-  spName: mysp
-  # -- Refresh interval for the secrets to be pulled from Keyvault
-  refreshInterval: "5m"
-  # -- External Secret Version
-  version: v1beta1    
+    instrumentation.opentelemetry.io/inject-nodejs: "otel/instrumentation" 
