@@ -13,7 +13,6 @@ julu-deploy:
     minReplicas: 2
     maxReplicas: 8
     
-  envConfig:
   ddApm:
     enabled: true
   ddLogs:
@@ -31,8 +30,21 @@ julu-deploy:
       memory: 2Gi
 
   ports: 8087
-  appCommands:
-    - sleep 50s
+lifeCycle: {}
+  preStop:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - sleep 10
+ 
+  postStart:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - sleep 10
+        
   scaledobject:
     enabled: true
     external-secrets:
