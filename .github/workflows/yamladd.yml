@@ -92,7 +92,9 @@ jobs:
             exit 1
           fi
 
-          if [[ awk -F '~' '{print $1}' ${{ inputs.OverrideYaml }} == envSecret ]]; then
+          temp=awk -F '~' '{print $1}' ${{ inputs.OverrideYaml }} 
+          
+          if [[  "temp" == "envSecret" ]]; then
             "No need for path validation"
             exit 0
           fi  
