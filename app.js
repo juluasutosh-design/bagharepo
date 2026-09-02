@@ -290,12 +290,189 @@ function findPathAnywhere(node, path) {
   return null;
 }
 
+function levenshteinDistance(a, b) {
+  const left = String(a ?? "");
+  const right = String(b ?? "");
+  const rows = left.length + 1;
+  const cols = right.length + 1;
+  const matrix = Array.from({ length: rows }, () => new Array(cols).fill(0));
+
+  for (let i = 0; i < rows; i += 1) {
+    matrix[i][0] = i;
+  }
+
+  for (let j = 0; j < cols; j += 1) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost,
+      );
+    }
+  }
+
+  return matrix[rows - 1][cols - 1];
+}
+
+function findClosestMatch(input, candidates) {
+  if (!input || !Array.isArray(candidates) || candidates.length === 0) {
+    return null;
+  }
+
+  const normalizedInput = String(input);
+  const uniqueCandidates = [...new Set(candidates.filter(Boolean).map(String))];
+  let best = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (const candidate of uniqueCandidates) {
+    const distance = levenshteinDistance(normalizedInput, candidate);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = candidate;
+    }
+  }
+
+  const allowedDistance = Math.max(2, Math.floor(normalizedInput.length * 0.4));
+  if (bestDistance <= allowedDistance) {
+    return best;
+  }
+
+  return null;
+}
+
+function collectReferenceMetadata(node, path = [], metadata) {
+  const current = metadata || {
+    allKeys: new Set(),
+    parentKeys: new Set(),
+    parentPaths: [],
+  };
+
+  if (YAML.isMap(node)) {
+    for (const pair of node.items) {
+      if (!YAML.isScalar(pair.key)) {
+        continue;
+      }
+
+      const key = String(pair.key.value);
+      current.allKeys.add(key);
+
+      const nextPath = [...path, key];
+      if (YAML.isMap(pair.value) || YAML.isSeq(pair.value)) {
+        current.parentKeys.add(key);
+        current.parentPaths.push(nextPath);
+      }
+
+      collectReferenceMetadata(pair.value, nextPath, current);
+    }
+  } else if (YAML.isSeq(node)) {
+    for (const item of node.items) {
+      collectReferenceMetadata(item, path, current);
+    }
+  }
+
+  return current;
+}
+
+function getChildKeysFromNode(node) {
+  const childKeys = new Set();
+
+  if (YAML.isMap(node)) {
+    for (const pair of node.items) {
+      if (YAML.isScalar(pair.key)) {
+        childKeys.add(String(pair.key.value));
+      }
+    }
+  }
+
+  if (YAML.isSeq(node)) {
+    for (const item of node.items) {
+      if (!YAML.isMap(item)) {
+        continue;
+      }
+
+      for (const pair of item.items) {
+        if (YAML.isScalar(pair.key)) {
+          childKeys.add(String(pair.key.value));
+        }
+      }
+    }
+  }
+
+  return [...childKeys];
+}
+
+function buildPathMismatchMessage(referenceRoot, path) {
+  const fullPathLabel = path.join("~");
+  const metadata = collectReferenceMetadata(referenceRoot);
+  const parentPath = path.slice(0, -1);
+  const requestedKey = path[path.length - 1];
+
+  if (parentPath.length > 0) {
+    const resolvedParent = findPathAnywhere(referenceRoot, parentPath);
+    if (resolvedParent) {
+      const availableChildKeys = getChildKeysFromNode(resolvedParent);
+      const suggestedKey = isArraySegment(requestedKey)
+        ? null
+        : findClosestMatch(requestedKey, availableChildKeys);
+
+      let message = `Key mismatch at path ${fullPathLabel}. Unknown key "${requestedKey}" under parent "${parentPath.join("~")}".`;
+      if (suggestedKey) {
+        message += ` Did you mean "${suggestedKey}"?`;
+      }
+      return message;
+    }
+
+    const mismatchedParent = parentPath[parentPath.length - 1];
+    const suggestedParent = isArraySegment(mismatchedParent)
+      ? null
+      : findClosestMatch(mismatchedParent, [...metadata.parentKeys]);
+    const parentPathCandidates = metadata.parentPaths.map((segments) =>
+      segments.join("~"),
+    );
+    const suggestedParentPath = findClosestMatch(
+      parentPath.join("~"),
+      parentPathCandidates,
+    );
+
+    let message = `Parent mismatch at path ${fullPathLabel}. Unknown parent "${mismatchedParent}"`;
+    if (parentPath.length > 1) {
+      message += ` under "${parentPath.slice(0, -1).join("~")}"`;
+    }
+    message += ".";
+
+    if (suggestedParent) {
+      message += ` Did you mean parent "${suggestedParent}"?`;
+    }
+
+    if (suggestedParentPath) {
+      message += ` Closest valid parent path: "${suggestedParentPath}".`;
+    }
+
+    return message;
+  }
+
+  const suggestedRootKey = isArraySegment(requestedKey)
+    ? null
+    : findClosestMatch(requestedKey, [...metadata.allKeys]);
+  let message = `Path not found in referenceChart.yml: ${fullPathLabel}.`;
+  if (suggestedRootKey) {
+    message += ` Did you mean key "${suggestedRootKey}"?`;
+  }
+
+  return message;
+}
+
 function validateUpdatesAgainstReference(referenceDoc, updates) {
   for (const update of updates) {
     const referenceNode = findPathAnywhere(referenceDoc.contents, update.path);
     if (!referenceNode) {
       throw new Error(
-        `Path not found in referenceChart.yml: ${update.path.join("~")}`,
+        buildPathMismatchMessage(referenceDoc.contents, update.path),
       );
     }
 
