@@ -22,3 +22,7 @@ julu-deploy:
   podResources:
     requests:
       cpu: 8
+  preStop:
+    exec:
+      command:
+        - sleep 90s
