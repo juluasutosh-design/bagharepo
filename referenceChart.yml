@@ -14,12 +14,6 @@ julu-deploy:
     maxReplicas: 8
     
   envConfig:
-    ENVIRONMENT: prod
-    DD_TRACE_DB_CLIENT_SPLIT_BY_INSTANCE: 'true'
-    DD_JMXFETCH_ENABLED: true
-    DD_TRACE_SPLIT_BY_TAGS: true
-    DD_HTTP_CLIENT_TAG_QUERY_STRING: true
-    DD_SERVICE_MAPPING: "exp-ui"
   ddApm:
     enabled: true
   ddLogs:
@@ -37,7 +31,7 @@ julu-deploy:
       memory: 2Gi
 
   ports: 8087
-  
+  appCommands:
   scaledobject:
     enabled: true
     external-secrets:
