@@ -32,7 +32,7 @@ julu-deploy:
 
   ports: 8087
   appCommands:
-  appArgs:
+    - sleep 50s
   scaledobject:
     enabled: true
     external-secrets:
