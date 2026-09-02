@@ -21,7 +21,8 @@ julu-deploy:
     refreshInterval: "5m"
   # -- External Secret Version
     version: v1beta1      
-    
+  envSecrets: 
+    ENV1: ENV1   
   ddApm:
     enabled: true
   ddLogs:
