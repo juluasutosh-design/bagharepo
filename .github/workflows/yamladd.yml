@@ -92,6 +92,11 @@ jobs:
             exit 1
           fi
 
+          if [[ awk -F '~' '{print $1}' ${{ inputs.OverrideYaml }} == envSecret ]]; then
+            "No need for path validation"
+            exit 0
+          fi  
+
           split_top_level() {
             local text="$1"
             local delim="$2"
