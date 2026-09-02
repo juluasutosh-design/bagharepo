@@ -22,3 +22,4 @@ julu-deploy:
   podResources:
     requests:
       cpu: 8
+  ports: 8098
