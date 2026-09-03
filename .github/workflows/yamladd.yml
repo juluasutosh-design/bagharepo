@@ -227,6 +227,28 @@ jobs:
             fi
           }
 
+          format_candidates() {
+            local candidates="$1"
+            local limit="${2:-15}"
+            local count=0
+            local out=""
+
+            while IFS= read -r cand; do
+              [[ -z "$cand" ]] && continue
+              if (( count >= limit )); then
+                break
+              fi
+              if [[ -z "$out" ]]; then
+                out="$cand"
+              else
+                out+", $cand"
+              fi
+              ((count+=1))
+            done <<< "$candidates"
+
+            printf '%s' "$out"
+          }
+
           is_exception_parent_key() {
             local key="$1"
             case "$key" in
@@ -288,12 +310,17 @@ jobs:
               top_candidates="$(yq -r '.. | select(type == "!!map") | keys | .[]' "$REF_FILE" 2>/dev/null | sort -u || true)"
               local top_suggestion
               top_suggestion="$(suggest_key "$first" "$top_candidates")"
+              local top_possible
+              top_possible="$(format_candidates "$top_candidates")"
               if [[ -n "$top_suggestion" ]]; then
                 echo "Path not found in referenceChart.yml: $path_str"
                 echo "Parent key '$first' not found. Did you mean '$top_suggestion'?"
               else
                 echo "Path not found in referenceChart.yml: $path_str"
                 echo "Parent key '$first' not found."
+              fi
+              if [[ -n "$top_possible" ]]; then
+                echo "Possible keys: $top_possible"
               fi
               return 1
             fi
@@ -308,11 +335,16 @@ jobs:
                 child_candidates="$(yq -r "$expr | select(type == \"!!map\") | keys | .[]" "$REF_FILE" 2>/dev/null | sort -u || true)"
                 local child_suggestion
                 child_suggestion="$(suggest_key "$seg" "$child_candidates")"
+                local child_possible
+                child_possible="$(format_candidates "$child_candidates")"
                 echo "Path not found in referenceChart.yml: $path_str"
                 if [[ -n "$child_suggestion" ]]; then
                   echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'. Did you mean '$child_suggestion'?"
                 else
                   echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'."
+                fi
+                if [[ -n "$child_possible" ]]; then
+                  echo "Possible child keys under '${path_parts[$((p-1))]}': $child_possible"
                 fi
                 return 1
               fi
