@@ -79,6 +79,22 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
           yq --version
 
+      - name: Validate OverrideYaml terminator
+        env:
+          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          trimmed="$(printf '%s' "$OVERRIDE_YAML" | sed -E 's/[[:space:]]+$//')"
+          if [[ -z "$trimmed" ]]; then
+            echo "OverrideYaml is empty"
+            exit 1
+          fi
+          if [[ "$trimmed" != *';' ]]; then
+            echo "Invalid OverrideYaml: it must end with ';'"
+            exit 1
+          fi
+
       - name: Validate input against referenceChart using yq
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
@@ -91,13 +107,6 @@ jobs:
             echo "referenceChart.yml not found"
             exit 1
           fi
-
-          temp=awk -F '~' '{print $1}' ${{ inputs.OverrideYaml }} 
-          
-          if [[  "${temp}" == "envSecret" ]]; then
-            "No need for path validation"
-            exit 0
-          fi  
 
           split_top_level() {
             local text="$1"
@@ -185,9 +194,82 @@ jobs:
             fi
           }
 
+          suggest_key() {
+            local target="$1"
+            local candidates="$2"
+            local target_lc="${target,,}"
+
+            local exact=""
+            local starts=""
+            local contains=""
+
+            while IFS= read -r cand; do
+              [[ -z "$cand" ]] && continue
+              local cand_lc="${cand,,}"
+              if [[ "$cand_lc" == "$target_lc" ]]; then
+                exact="$cand"
+                break
+              fi
+              if [[ -z "$starts" && "$cand_lc" == "$target_lc"* ]]; then
+                starts="$cand"
+              fi
+              if [[ -z "$contains" && "$cand_lc" == *"$target_lc"* ]]; then
+                contains="$cand"
+              fi
+            done <<< "$candidates"
+
+            if [[ -n "$exact" ]]; then
+              printf '%s' "$exact"
+            elif [[ -n "$starts" ]]; then
+              printf '%s' "$starts"
+            elif [[ -n "$contains" ]]; then
+              printf '%s' "$contains"
+            fi
+          }
+
+          is_exception_parent_key() {
+            local key="$1"
+            case "$key" in
+              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations)
+                return 0
+                ;;
+              *)
+                return 1
+                ;;
+            esac
+          }
+
+          get_exception_parent_path() {
+            local path_str="$1"
+            local path_parts=()
+            split_top_level "$path_str" "~" path_parts
+
+            local total=${#path_parts[@]}
+            local acc=""
+
+            for ((i=0; i<total; i++)); do
+              local seg
+              seg="$(trim "${path_parts[$i]}")"
+
+              if [[ -z "$acc" ]]; then
+                acc="$seg"
+              else
+                acc+="~$seg"
+              fi
+
+              if is_exception_parent_key "$seg" && (( i < total - 1 )); then
+                printf '%s' "$acc"
+                return 0
+              fi
+            done
+
+            return 1
+          }
+
           validate_path_and_type() {
             local path_str="$1"
             local value_str="$2"
+            local strict_type="${3:-true}"
 
             local path_parts=()
             split_top_level "$path_str" "~" path_parts
@@ -201,15 +283,49 @@ jobs:
             first="$(trim "${path_parts[0]}")"
             local expr=".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\""
 
+            if ! yq -e "$expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
+              local top_candidates
+              top_candidates="$(yq -r '.. | select(type == "!!map") | keys | .[]' "$REF_FILE" 2>/dev/null | sort -u || true)"
+              local top_suggestion
+              top_suggestion="$(suggest_key "$first" "$top_candidates")"
+              if [[ -n "$top_suggestion" ]]; then
+                echo "Path not found in referenceChart.yml: $path_str"
+                echo "Parent key '$first' not found. Did you mean '$top_suggestion'?"
+              else
+                echo "Path not found in referenceChart.yml: $path_str"
+                echo "Parent key '$first' not found."
+              fi
+              return 1
+            fi
+
             for ((p=1; p<${#path_parts[@]}; p++)); do
               local seg
               seg="$(trim "${path_parts[$p]}")"
-              expr="$expr.\"$seg\""
+              local next_expr="$expr | select(type == \"!!map\" and has(\"$seg\")) | .\"$seg\""
+
+              if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
+                local child_candidates
+                child_candidates="$(yq -r "$expr | select(type == \"!!map\") | keys | .[]" "$REF_FILE" 2>/dev/null | sort -u || true)"
+                local child_suggestion
+                child_suggestion="$(suggest_key "$seg" "$child_candidates")"
+                echo "Path not found in referenceChart.yml: $path_str"
+                if [[ -n "$child_suggestion" ]]; then
+                  echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'. Did you mean '$child_suggestion'?"
+                else
+                  echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'."
+                fi
+                return 1
+              fi
+
+              expr="$next_expr"
             done
 
-            if ! yq -e "$expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
-              echo "Path not found in referenceChart.yml: $path_str"
-              return 1
+            if [[ "$strict_type" == "false" ]]; then
+              yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1 || {
+                echo "Type mismatch at $path_str: expected object/map in referenceChart.yml"
+                return 1
+              }
+              return 0
             fi
 
             local actual_kind
@@ -299,10 +415,18 @@ jobs:
               done
               expanded=("${expand_list[@]}")
               for exp_path in "${expanded[@]}"; do
-                validate_path_and_type "$exp_path" "$value"
+                if parent_path="$(get_exception_parent_path "$exp_path")"; then
+                  validate_path_and_type "$parent_path" "{}" "false"
+                else
+                  validate_path_and_type "$exp_path" "$value"
+                fi
               done
             else
-              validate_path_and_type "$path" "$value"
+              if parent_path="$(get_exception_parent_path "$path")"; then
+                validate_path_and_type "$parent_path" "{}" "false"
+              else
+                validate_path_and_type "$path" "$value"
+              fi
             fi
           done
 
