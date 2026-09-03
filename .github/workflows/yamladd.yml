@@ -182,6 +182,8 @@ jobs:
             printf '%s' "$var"
           }
 
+          PARENT_KEYS_LIST="$(yq -r '.. | select(type == "!!map") | to_entries | .[] | select(.value | tag == "!!map") | .key' "$REF_FILE" 2>/dev/null | sort -u || true)"
+
           infer_value_kind() {
             local value
             value="$(trim "$1")"
@@ -307,7 +309,7 @@ jobs:
 
             if ! yq -e "$expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
               local top_candidates
-              top_candidates="$(yq -r '.. | select(type == "!!map") | keys | .[]' "$REF_FILE" 2>/dev/null | sort -u || true)"
+              top_candidates="$PARENT_KEYS_LIST"
               local top_suggestion
               top_suggestion="$(suggest_key "$first" "$top_candidates")"
               local top_possible
