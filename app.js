@@ -194,122 +194,6 @@ function parseInput(raw) {
   return updates;
 }
 
-function getValueKind(value) {
-  if (Array.isArray(value)) {
-    return "array";
-  }
-
-  if (value !== null && typeof value === "object") {
-    return "object";
-  }
-
-  return "scalar";
-}
-
-function getNodeKind(node) {
-  if (YAML.isSeq(node)) {
-    return "array";
-  }
-
-  if (YAML.isMap(node)) {
-    return "object";
-  }
-
-  return "scalar";
-}
-
-function resolvePathFromNode(node, path) {
-  if (path.length === 0) {
-    return node;
-  }
-
-  const [segment, ...rest] = path;
-
-  if (isArraySegment(segment)) {
-    const keys = getArraySegmentKeys(segment);
-    if (keys.length === 0) {
-      return null;
-    }
-
-    let lastResolved = null;
-    for (const key of keys) {
-      const resolved = resolvePathFromNode(node, [key, ...rest]);
-      if (!resolved) {
-        return null;
-      }
-      lastResolved = resolved;
-    }
-
-    return lastResolved;
-  }
-
-  if (YAML.isMap(node)) {
-    const pair = findPairInMap(node, segment);
-    if (!pair) {
-      return null;
-    }
-    return resolvePathFromNode(pair.value, rest);
-  }
-
-  if (YAML.isSeq(node)) {
-    for (const item of node.items) {
-      const resolved = resolvePathFromNode(item, path);
-      if (resolved) {
-        return resolved;
-      }
-    }
-  }
-
-  return null;
-}
-
-function findPathAnywhere(node, path) {
-  const direct = resolvePathFromNode(node, path);
-  if (direct) {
-    return direct;
-  }
-
-  if (YAML.isMap(node)) {
-    for (const pair of node.items) {
-      const nested = findPathAnywhere(pair.value, path);
-      if (nested) {
-        return nested;
-      }
-    }
-  }
-
-  if (YAML.isSeq(node)) {
-    for (const item of node.items) {
-      const nested = findPathAnywhere(item, path);
-      if (nested) {
-        return nested;
-      }
-    }
-  }
-
-  return null;
-}
-
-function validateUpdatesAgainstReference(referenceDoc, updates) {
-  for (const update of updates) {
-    const referenceNode = findPathAnywhere(referenceDoc.contents, update.path);
-    if (!referenceNode) {
-      throw new Error(
-        `Path not found in referenceChart.yml: ${update.path.join("~")}`,
-      );
-    }
-
-    const expectedKind = getNodeKind(referenceNode);
-    const actualKind = getValueKind(update.value);
-
-    if (expectedKind !== actualKind) {
-      throw new Error(
-        `Type mismatch for path ${update.path.join("~")}: expected ${expectedKind}, received ${actualKind}`,
-      );
-    }
-  }
-}
-
 function findPairInMap(mapNode, key) {
   const getPairKey = (pair) => {
     if (YAML.isScalar(pair.key)) {
@@ -558,13 +442,6 @@ function applyPathUpdate(rootMap, path, value, doc) {
 
 function main() {
   const updates = parseInput(process.env.OVERRIDE_YAML);
-  const referencePath = "./referenceChart.yml";
-  const referenceText = fs.readFileSync(referencePath, "utf8");
-  const referenceDoc = YAML.parseDocument(referenceText);
-  validateUpdatesAgainstReference(referenceDoc, updates);
-  console.log(
-    `Validated ${updates.length} override(s) against ${referencePath}`,
-  );
 
   for (const update of updates) {
     console.log(
