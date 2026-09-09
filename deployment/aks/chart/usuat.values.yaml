@@ -13,15 +13,17 @@ julu-deploy:
     minReplicas: 2
     maxReplicas: 8
   keyVault:
-  # -- Keyvault Name to pull secrets for the application
+    # -- Keyvault Name to pull secrets for the application
     name: mykv
-  # -- Service Principal to use to pull secrets from Keyvault
+    # -- Service Principal to use to pull secrets from Keyvault
     spName: mysp
-  # -- Refresh interval for the secrets to be pulled from Keyvault
+    # -- Refresh interval for the secrets to be pulled from Keyvault
     refreshInterval: "5m"
-  # -- External Secret Version
-    version: v1beta1      
-  
-  envSecrets: 
-    ENV1: ENV1   
-       
+    # -- External Secret Version
+    version: v1beta1
+
+  envSecrets:
+    ENV1: ENV1
+  config:
+    - serverName: smb-server-name
+      source: //smb-server-name/home/ftp
