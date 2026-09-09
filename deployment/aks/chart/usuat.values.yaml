@@ -24,7 +24,4 @@ julu-deploy:
   
   envSecrets: 
     ENV1: ENV1   
-      
-  pv:
-    smb:
-      config: [] 
+       
