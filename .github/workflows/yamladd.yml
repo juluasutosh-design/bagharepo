@@ -79,7 +79,7 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
           yq --version
 
-      - name: Validate OverrideYaml terminator
+      - name: Validate OverrideYaml input separator
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
         shell: bash
@@ -182,8 +182,6 @@ jobs:
             printf '%s' "$var"
           }
 
-          PARENT_KEYS_LIST="$(yq -r '.. | select(type == "!!map") | to_entries | .[] | select(.value | tag == "!!map") | .key' "$REF_FILE" 2>/dev/null | sort -u || true)"
-
           infer_value_kind() {
             local value
             value="$(trim "$1")"
@@ -194,61 +192,6 @@ jobs:
             else
               echo "scalar"
             fi
-          }
-
-          suggest_key() {
-            local target="$1"
-            local candidates="$2"
-            local target_lc="${target,,}"
-
-            local exact=""
-            local starts=""
-            local contains=""
-
-            while IFS= read -r cand; do
-              [[ -z "$cand" ]] && continue
-              local cand_lc="${cand,,}"
-              if [[ "$cand_lc" == "$target_lc" ]]; then
-                exact="$cand"
-                break
-              fi
-              if [[ -z "$starts" && "$cand_lc" == "$target_lc"* ]]; then
-                starts="$cand"
-              fi
-              if [[ -z "$contains" && "$cand_lc" == *"$target_lc"* ]]; then
-                contains="$cand"
-              fi
-            done <<< "$candidates"
-
-            if [[ -n "$exact" ]]; then
-              printf '%s' "$exact"
-            elif [[ -n "$starts" ]]; then
-              printf '%s' "$starts"
-            elif [[ -n "$contains" ]]; then
-              printf '%s' "$contains"
-            fi
-          }
-
-          format_candidates() {
-            local candidates="$1"
-            local limit="${2:-15}"
-            local count=0
-            local out=""
-
-            while IFS= read -r cand; do
-              [[ -z "$cand" ]] && continue
-              if (( count >= limit )); then
-                break
-              fi
-              if [[ -z "$out" ]]; then
-                out="$cand"
-              else
-                out+", $cand"
-              fi
-              ((count+=1))
-            done <<< "$candidates"
-
-            printf '%s' "$out"
           }
 
           is_exception_parent_key() {
@@ -290,6 +233,65 @@ jobs:
             return 1
           }
 
+          fuzzy_match_keys() {
+            local input_key="$1"
+            local parent_key="$2"
+            local ref_file="$3"
+
+            # Get child keys under parent_key from referenceChart
+            local children
+            children="$(yq -r ".\"$parent_key\" | keys | .[]" "$ref_file" 2>/dev/null | sort -u)"
+
+            if [[ -z "$children" ]]; then
+              return
+            fi
+
+            local input_lower
+            input_lower="$(echo "$input_key" | tr '[:upper:]' '[:lower:]')"
+            local input_len=${#input_lower}
+
+            # Match progressively: 1 char, 2 chars, 3 chars, etc., then full fuzzy
+            declare -a matched_keys
+
+            for ((len=1; len<=input_len; len++)); do
+              local substring
+              substring="${input_lower:0:$len}"
+
+              while IFS= read -r child; do
+                [[ -z "$child" ]] && continue
+                local child_lower
+                child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+
+                if [[ "$child_lower" == "$substring"* ]]; then
+                  matched_keys+=("$child")
+                fi
+              done <<< "$children"
+
+              # If we found matches at this length, show them and stop
+              if [[ ${#matched_keys[@]} -gt 0 ]]; then
+                break
+              fi
+            done
+
+            # If no substring match found, do simple substring search anywhere
+            if [[ ${#matched_keys[@]} -eq 0 ]]; then
+              while IFS= read -r child; do
+                [[ -z "$child" ]] && continue
+                local child_lower
+                child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+
+                if [[ "$child_lower" == *"$input_lower"* ]]; then
+                  matched_keys+=("$child")
+                fi
+              done <<< "$children"
+            fi
+
+            # Deduplicate and output
+            if [[ ${#matched_keys[@]} -gt 0 ]]; then
+              printf '%s\n' "${matched_keys[@]}" | sort -u
+            fi
+          }
+
           validate_path_and_type() {
             local path_str="$1"
             local value_str="$2"
@@ -308,21 +310,42 @@ jobs:
             local expr=".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\""
 
             if ! yq -e "$expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
-              local top_candidates
-              top_candidates="$PARENT_KEYS_LIST"
-              local top_suggestion
-              top_suggestion="$(suggest_key "$first" "$top_candidates")"
-              local top_possible
-              top_possible="$(format_candidates "$top_candidates")"
-              if [[ -n "$top_suggestion" ]]; then
-                echo "Path not found in referenceChart.yml: $path_str"
-                echo "Parent key '$first' not found. Did you mean '$top_suggestion'?"
-              else
-                echo "Path not found in referenceChart.yml: $path_str"
-                echo "Parent key '$first' not found."
-              fi
-              if [[ -n "$top_possible" ]]; then
-                echo "Possible keys: $top_possible"
+              echo "Path not found in referenceChart.yml: $path_str"
+              echo "Parent key '$first' not found."
+              
+              # Try fuzzy match at root level
+              local root_keys
+              root_keys="$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null | sort -u)"
+              local fuzzy_results
+              fuzzy_results="$(
+                local input_lower
+                input_lower="$(echo "$first" | tr '[:upper:]' '[:lower:]')"
+                local input_len=${#input_lower}
+                
+                declare -a matched=()
+                for ((len=1; len<=input_len; len++)); do
+                  local substring="${input_lower:0:$len}"
+                  while IFS= read -r key; do
+                    [[ -z "$key" ]] && continue
+                    local key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+                    [[ "$key_lower" == "$substring"* ]] && matched+=("$key")
+                  done <<< "$root_keys"
+                  [[ ${#matched[@]} -gt 0 ]] && break
+                done
+                
+                if [[ ${#matched[@]} -eq 0 ]]; then
+                  while IFS= read -r key; do
+                    [[ -z "$key" ]] && continue
+                    local key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+                    [[ "$key_lower" == *"$input_lower"* ]] && matched+=("$key")
+                  done <<< "$root_keys"
+                fi
+                
+                printf '%s\n' "${matched[@]}" | sort -u
+              )"
+              
+              if [[ -n "$fuzzy_results" ]]; then
+                echo "Did you mean one of these? $(echo "$fuzzy_results" | tr '\n' ', ' | sed 's/,$//')"
               fi
               return 1
             fi
@@ -333,20 +356,44 @@ jobs:
               local next_expr="$expr | select(type == \"!!map\" and has(\"$seg\")) | .\"$seg\""
 
               if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
-                local child_candidates
-                child_candidates="$(yq -r "$expr | select(type == \"!!map\") | keys | .[]" "$REF_FILE" 2>/dev/null | sort -u || true)"
-                local child_suggestion
-                child_suggestion="$(suggest_key "$seg" "$child_candidates")"
-                local child_possible
-                child_possible="$(format_candidates "$child_candidates")"
                 echo "Path not found in referenceChart.yml: $path_str"
-                if [[ -n "$child_suggestion" ]]; then
-                  echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'. Did you mean '$child_suggestion'?"
-                else
-                  echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'."
-                fi
-                if [[ -n "$child_possible" ]]; then
-                  echo "Possible child keys under '${path_parts[$((p-1))]}': $child_possible"
+                echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'."
+                
+                # Try fuzzy match under parent
+                local parent_key="${path_parts[$((p-1))]}"
+                local parent_children
+                parent_children="$(yq -r ".\"$parent_key\" | keys | .[]" "$REF_FILE" 2>/dev/null | sort -u)"
+                
+                local fuzzy_results
+                fuzzy_results="$(
+                  local input_lower
+                  input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
+                  local input_len=${#input_lower}
+                  
+                  declare -a matched=()
+                  for ((len=1; len<=input_len; len++)); do
+                    local substring="${input_lower:0:$len}"
+                    while IFS= read -r child; do
+                      [[ -z "$child" ]] && continue
+                      local child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+                      [[ "$child_lower" == "$substring"* ]] && matched+=("$child")
+                    done <<< "$parent_children"
+                    [[ ${#matched[@]} -gt 0 ]] && break
+                  done
+                  
+                  if [[ ${#matched[@]} -eq 0 ]]; then
+                    while IFS= read -r child; do
+                      [[ -z "$child" ]] && continue
+                      local child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+                      [[ "$child_lower" == *"$input_lower"* ]] && matched+=("$child")
+                    done <<< "$parent_children"
+                  fi
+                  
+                  printf '%s\n' "${matched[@]}" | sort -u
+                )"
+                
+                if [[ -n "$fuzzy_results" ]]; then
+                  echo "Did you mean one of these? $(echo "$fuzzy_results" | tr '\n' ', ' | sed 's/,$//')"
                 fi
                 return 1
               fi
