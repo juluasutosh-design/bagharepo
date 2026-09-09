@@ -589,6 +589,8 @@ jobs:
                       while IFS= read -r child; do
                         [[ -z "$child" ]] && continue
                         child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+      - name: run app
+        env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
           ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
           CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
