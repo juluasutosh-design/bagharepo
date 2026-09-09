@@ -186,11 +186,3 @@ julu-deploy:
   customAppAnnotations:
     instrumentation.opentelemetry.io/inject-nodejs: "otel/instrumentation" 
       
-  pv:
-    blobfuse:
-      enabled: false
-    fileshare:
-      enabled: false
-    smb:
-      enabled: false
-      config: [] 
