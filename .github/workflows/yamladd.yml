@@ -590,6 +590,8 @@ jobs:
               
               # Get fuzzy suggestions for root keys
               root_keys="$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null)"
+
+              echo ${root_keys}
               
               if [[ -n "$root_keys" ]]; then
                 input_lower="$(echo "$first" | tr '[:upper:]' '[:lower:]')"
