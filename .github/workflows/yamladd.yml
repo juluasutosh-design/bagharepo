@@ -80,6 +80,7 @@ jobs:
           yq --version
 
       - name: Validate OverrideYaml input separator
+        id: val
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
         shell: bash
@@ -96,7 +97,6 @@ jobs:
           fi
 
       - name: Validate input against referenceChart using yq
-        id: val
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
         shell: bash
@@ -254,6 +254,42 @@ jobs:
             if ! yq -e "$expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
               echo "Path not found in referenceChart.yml: $path_str"
               echo "Parent key '$first' not found."
+              
+              # Fuzzy matching suggestions for parent key
+              root_keys="$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null)"
+              if [[ -n "$root_keys" ]]; then
+                input_lower="$(echo "$first" | tr '[:upper:]' '[:lower:]')"
+                input_len=${#input_lower}
+                fuzzy_results=""
+                
+                for ((len=1; len<=input_len; len++)); do
+                  substring="${input_lower:0:$len}"
+                  if [[ -n "$fuzzy_results" ]]; then
+                    break
+                  fi
+                  while IFS= read -r key; do
+                    [[ -z "$key" ]] && continue
+                    key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+                    if [[ "$key_lower" == "$substring"* ]]; then
+                      [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$key" || fuzzy_results="$key"
+                    fi
+                  done <<< "$root_keys"
+                done
+                
+                if [[ -z "$fuzzy_results" ]]; then
+                  while IFS= read -r key; do
+                    [[ -z "$key" ]] && continue
+                    key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+                    if [[ "$key_lower" == *"$input_lower"* ]]; then
+                      [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$key" || fuzzy_results="$key"
+                    fi
+                  done <<< "$root_keys"
+                fi
+                
+                if [[ -n "$fuzzy_results" ]]; then
+                  echo "Did you mean one of these? $fuzzy_results"
+                fi
+              fi
               return 1
             fi
 
@@ -265,6 +301,44 @@ jobs:
               if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
                 echo "Path not found in referenceChart.yml: $path_str"
                 echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'."
+                
+                # Fuzzy matching suggestions for child key
+                parent_key="${path_parts[$((p-1))]}"
+                parent_children="$(yq -r ".\"$parent_key\" | keys | .[]" "$REF_FILE" 2>/dev/null)"
+                
+                if [[ -n "$parent_children" ]]; then
+                  input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
+                  input_len=${#input_lower}
+                  fuzzy_results=""
+                  
+                  for ((len=1; len<=input_len; len++)); do
+                    substring="${input_lower:0:$len}"
+                    if [[ -n "$fuzzy_results" ]]; then
+                      break
+                    fi
+                    while IFS= read -r child; do
+                      [[ -z "$child" ]] && continue
+                      child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+                      if [[ "$child_lower" == "$substring"* ]]; then
+                        [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
+                      fi
+                    done <<< "$parent_children"
+                  done
+                  
+                  if [[ -z "$fuzzy_results" ]]; then
+                    while IFS= read -r child; do
+                      [[ -z "$child" ]] && continue
+                      child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+                      if [[ "$child_lower" == *"$input_lower"* ]]; then
+                        [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
+                      fi
+                    done <<< "$parent_children"
+                  fi
+                  
+                  if [[ -n "$fuzzy_results" ]]; then
+                    echo "Did you mean one of these? $fuzzy_results"
+                  fi
+                fi
                 return 1
               fi
 
@@ -610,9 +684,10 @@ jobs:
           done
 
           exit 1
-          
-      - name: run app
-        if: ${{ steps.val.outcome != 'success' }}
+
+      - name: Run the patching script
+        if: ${{ steps.val.outcome == 'success' }}
+        # Pass OverrideYaml as an env var so multiline newlines are preserved.
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
           ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
