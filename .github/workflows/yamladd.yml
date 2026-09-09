@@ -96,6 +96,7 @@ jobs:
           fi
 
       - name: Validate input against referenceChart using yq
+        id: val
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
         shell: bash
@@ -589,7 +590,29 @@ jobs:
                       while IFS= read -r child; do
                         [[ -z "$child" ]] && continue
                         child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+                        if [[ "$child_lower" == *"$input_lower"* ]]; then
+                          [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
+                        fi
+                      done <<< "$parent_children"
+                    fi
+                    
+                    if [[ -n "$fuzzy_results" ]]; then
+                      echo "   💡 Did you mean? $fuzzy_results"
+                    fi
+                  fi
+                  found_error=1
+                  break
+                fi
+                
+                expr="$next_expr"
+              done
+            fi
+          done
+
+          exit 1
+          
       - name: run app
+        if: ${{ steps.val.outcome != 'success' }}
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
           ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
