@@ -56,6 +56,8 @@ julu-deploy:
           - sleep 10
   appCommands:
     - /bin/sh
+  appArgs:
+    - echo ls
   scaledobject:
     enabled: true
     external-secrets:
