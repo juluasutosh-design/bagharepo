@@ -315,37 +315,44 @@ jobs:
               
               # Try fuzzy match at root level
               local root_keys
-              root_keys="$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null | sort -u)"
-              local fuzzy_results
-              fuzzy_results="$(
-                local input_lower
-                input_lower="$(echo "$first" | tr '[:upper:]' '[:lower:]')"
-                local input_len=${#input_lower}
+              root_keys="$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null)"
+              
+              local input_lower
+              input_lower="$(echo "$first" | tr '[:upper:]' '[:lower:]')"
+              local input_len=${#input_lower}
+              
+              # Try progressive prefix matching
+              local fuzzy_results=""
+              for ((len=1; len<=input_len; len++)); do
+                local substring="${input_lower:0:$len}"
+                while IFS= read -r key; do
+                  [[ -z "$key" ]] && continue
+                  local key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+                  if [[ "$key_lower" == "$substring"* ]]; then
+                    fuzzy_results+="$key"$'\n'
+                  fi
+                done <<< "$root_keys"
                 
-                declare -a matched=()
-                for ((len=1; len<=input_len; len++)); do
-                  local substring="${input_lower:0:$len}"
-                  while IFS= read -r key; do
-                    [[ -z "$key" ]] && continue
-                    local key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
-                    [[ "$key_lower" == "$substring"* ]] && matched+=("$key")
-                  done <<< "$root_keys"
-                  [[ ${#matched[@]} -gt 0 ]] && break
-                done
-                
-                if [[ ${#matched[@]} -eq 0 ]]; then
-                  while IFS= read -r key; do
-                    [[ -z "$key" ]] && continue
-                    local key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
-                    [[ "$key_lower" == *"$input_lower"* ]] && matched+=("$key")
-                  done <<< "$root_keys"
+                if [[ -n "$fuzzy_results" ]]; then
+                  break
                 fi
-                
-                printf '%s\n' "${matched[@]}" | sort -u
-              )"
+              done
+              
+              # If no prefix match, try substring anywhere
+              if [[ -z "$fuzzy_results" ]]; then
+                while IFS= read -r key; do
+                  [[ -z "$key" ]] && continue
+                  local key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+                  if [[ "$key_lower" == *"$input_lower"* ]]; then
+                    fuzzy_results+="$key"$'\n'
+                  fi
+                done <<< "$root_keys"
+              fi
               
               if [[ -n "$fuzzy_results" ]]; then
-                echo "Did you mean one of these? $(echo "$fuzzy_results" | tr '\n' ', ' | sed 's/,$//')"
+                local suggestions
+                suggestions="$(echo "$fuzzy_results" | sort -u | tr '\n' ', ' | sed 's/,$//')"
+                echo "Did you mean one of these? $suggestions"
               fi
               return 1
             fi
@@ -362,38 +369,44 @@ jobs:
                 # Try fuzzy match under parent
                 local parent_key="${path_parts[$((p-1))]}"
                 local parent_children
-                parent_children="$(yq -r ".\"$parent_key\" | keys | .[]" "$REF_FILE" 2>/dev/null | sort -u)"
+                parent_children="$(yq -r ".\"$parent_key\" | keys | .[]" "$REF_FILE" 2>/dev/null)"
                 
-                local fuzzy_results
-                fuzzy_results="$(
-                  local input_lower
-                  input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
-                  local input_len=${#input_lower}
+                local input_lower
+                input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
+                local input_len=${#input_lower}
+                
+                # Try progressive prefix matching
+                local fuzzy_results=""
+                for ((len=1; len<=input_len; len++)); do
+                  local substring="${input_lower:0:$len}"
+                  while IFS= read -r child; do
+                    [[ -z "$child" ]] && continue
+                    local child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+                    if [[ "$child_lower" == "$substring"* ]]; then
+                      fuzzy_results+="$child"$'\n'
+                    fi
+                  done <<< "$parent_children"
                   
-                  declare -a matched=()
-                  for ((len=1; len<=input_len; len++)); do
-                    local substring="${input_lower:0:$len}"
-                    while IFS= read -r child; do
-                      [[ -z "$child" ]] && continue
-                      local child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
-                      [[ "$child_lower" == "$substring"* ]] && matched+=("$child")
-                    done <<< "$parent_children"
-                    [[ ${#matched[@]} -gt 0 ]] && break
-                  done
-                  
-                  if [[ ${#matched[@]} -eq 0 ]]; then
-                    while IFS= read -r child; do
-                      [[ -z "$child" ]] && continue
-                      local child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
-                      [[ "$child_lower" == *"$input_lower"* ]] && matched+=("$child")
-                    done <<< "$parent_children"
+                  if [[ -n "$fuzzy_results" ]]; then
+                    break
                   fi
-                  
-                  printf '%s\n' "${matched[@]}" | sort -u
-                )"
+                done
+                
+                # If no prefix match, try substring anywhere
+                if [[ -z "$fuzzy_results" ]]; then
+                  while IFS= read -r child; do
+                    [[ -z "$child" ]] && continue
+                    local child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+                    if [[ "$child_lower" == *"$input_lower"* ]]; then
+                      fuzzy_results+="$child"$'\n'
+                    fi
+                  done <<< "$parent_children"
+                fi
                 
                 if [[ -n "$fuzzy_results" ]]; then
-                  echo "Did you mean one of these? $(echo "$fuzzy_results" | tr '\n' ', ' | sed 's/,$//')"
+                  local suggestions
+                  suggestions="$(echo "$fuzzy_results" | sort -u | tr '\n' ', ' | sed 's/,$//')"
+                  echo "Did you mean one of these? $suggestions"
                 fi
                 return 1
               fi
