@@ -233,65 +233,6 @@ jobs:
             return 1
           }
 
-          fuzzy_match_keys() {
-            local input_key="$1"
-            local parent_key="$2"
-            local ref_file="$3"
-
-            # Get child keys under parent_key from referenceChart
-            local children
-            children="$(yq -r ".\"$parent_key\" | keys | .[]" "$ref_file" 2>/dev/null | sort -u)"
-
-            if [[ -z "$children" ]]; then
-              return
-            fi
-
-            local input_lower
-            input_lower="$(echo "$input_key" | tr '[:upper:]' '[:lower:]')"
-            local input_len=${#input_lower}
-
-            # Match progressively: 1 char, 2 chars, 3 chars, etc., then full fuzzy
-            declare -a matched_keys
-
-            for ((len=1; len<=input_len; len++)); do
-              local substring
-              substring="${input_lower:0:$len}"
-
-              while IFS= read -r child; do
-                [[ -z "$child" ]] && continue
-                local child_lower
-                child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
-
-                if [[ "$child_lower" == "$substring"* ]]; then
-                  matched_keys+=("$child")
-                fi
-              done <<< "$children"
-
-              # If we found matches at this length, show them and stop
-              if [[ ${#matched_keys[@]} -gt 0 ]]; then
-                break
-              fi
-            done
-
-            # If no substring match found, do simple substring search anywhere
-            if [[ ${#matched_keys[@]} -eq 0 ]]; then
-              while IFS= read -r child; do
-                [[ -z "$child" ]] && continue
-                local child_lower
-                child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
-
-                if [[ "$child_lower" == *"$input_lower"* ]]; then
-                  matched_keys+=("$child")
-                fi
-              done <<< "$children"
-            fi
-
-            # Deduplicate and output
-            if [[ ${#matched_keys[@]} -gt 0 ]]; then
-              printf '%s\n' "${matched_keys[@]}" | sort -u
-            fi
-          }
-
           validate_path_and_type() {
             local path_str="$1"
             local value_str="$2"
@@ -312,48 +253,6 @@ jobs:
             if ! yq -e "$expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
               echo "Path not found in referenceChart.yml: $path_str"
               echo "Parent key '$first' not found."
-              
-              # Try fuzzy match at root level
-              local root_keys
-              root_keys="$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null)"
-              
-              if [[ -n "$root_keys" ]]; then
-                local input_lower
-                input_lower="$(echo "$first" | tr '[:upper:]' '[:lower:]')"
-                local input_len=${#input_lower}
-                
-                # Try progressive prefix matching
-                local fuzzy_results=""
-                
-                for ((len=1; len<=input_len; len++)); do
-                  local substring="${input_lower:0:$len}"
-                  if [[ -n "$fuzzy_results" ]]; then
-                    break
-                  fi
-                  while IFS= read -r key; do
-                    [[ -z "$key" ]] && continue
-                    local key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
-                    if [[ "$key_lower" == "$substring"* ]]; then
-                      [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$key" || fuzzy_results="$key"
-                    fi
-                  done <<< "$root_keys"
-                done
-                
-                # If no prefix match, try substring anywhere
-                if [[ -z "$fuzzy_results" ]]; then
-                  while IFS= read -r key; do
-                    [[ -z "$key" ]] && continue
-                    local key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
-                    if [[ "$key_lower" == *"$input_lower"* ]]; then
-                      [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$key" || fuzzy_results="$key"
-                    fi
-                  done <<< "$root_keys"
-                fi
-                
-                if [[ -n "$fuzzy_results" ]]; then
-                  echo "Did you mean one of these? $fuzzy_results"
-                fi
-              fi
               return 1
             fi
 
@@ -365,49 +264,6 @@ jobs:
               if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
                 echo "Path not found in referenceChart.yml: $path_str"
                 echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'."
-                
-                # Try fuzzy match under parent
-                local parent_key="${path_parts[$((p-1))]}"
-                local parent_children
-                parent_children="$(yq -r ".\"$parent_key\" | keys | .[]" "$REF_FILE" 2>/dev/null)"
-                
-                if [[ -n "$parent_children" ]]; then
-                  local input_lower
-                  input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
-                  local input_len=${#input_lower}
-                  
-                  # Try progressive prefix matching
-                  local fuzzy_results=""
-                  
-                  for ((len=1; len<=input_len; len++)); do
-                    local substring="${input_lower:0:$len}"
-                    if [[ -n "$fuzzy_results" ]]; then
-                      break
-                    fi
-                    while IFS= read -r child; do
-                      [[ -z "$child" ]] && continue
-                      local child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
-                      if [[ "$child_lower" == "$substring"* ]]; then
-                        [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
-                      fi
-                    done <<< "$parent_children"
-                  done
-                  
-                  # If no prefix match, try substring anywhere
-                  if [[ -z "$fuzzy_results" ]]; then
-                    while IFS= read -r child; do
-                      [[ -z "$child" ]] && continue
-                      local child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
-                      if [[ "$child_lower" == *"$input_lower"* ]]; then
-                        [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
-                      fi
-                    done <<< "$parent_children"
-                  fi
-                  
-                  if [[ -n "$fuzzy_results" ]]; then
-                    echo "Did you mean one of these? $fuzzy_results"
-                  fi
-                fi
                 return 1
               fi
 
@@ -525,6 +381,240 @@ jobs:
           done
 
           echo "yq validation passed for OverrideYaml"
+
+      - name: Fuzzy Match Suggestions
+        if: failure()
+        env:
+          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+        shell: bash
+        run: |
+          REF_FILE="./referenceChart.yml"
+
+          split_top_level() {
+            local text="$1"
+            local delim="$2"
+            local -n out_ref=$3
+            out_ref=()
+
+            local square=0
+            local curly=0
+            local paren=0
+            local quote=""
+            local escaped=0
+            local current=""
+            local ch=""
+
+            for ((i=0; i<${#text}; i++)); do
+              ch="${text:$i:1}"
+
+              if [[ -n "$quote" ]]; then
+                current+="$ch"
+                if (( escaped == 1 )); then
+                  escaped=0
+                  continue
+                fi
+                if [[ "$ch" == "\\" ]]; then
+                  escaped=1
+                  continue
+                fi
+                if [[ "$ch" == "$quote" ]]; then
+                  quote=""
+                fi
+                continue
+              fi
+
+              if [[ "$ch" == '"' || "$ch" == "'" ]]; then
+                quote="$ch"
+                current+="$ch"
+                continue
+              fi
+
+              if [[ "$ch" == "[" ]]; then
+                ((square+=1))
+              elif [[ "$ch" == "]" ]]; then
+                ((square>0)) && ((square-=1)) || true
+              elif [[ "$ch" == "{" ]]; then
+                ((curly+=1))
+              elif [[ "$ch" == "}" ]]; then
+                ((curly>0)) && ((curly-=1)) || true
+              elif [[ "$ch" == "(" ]]; then
+                ((paren+=1))
+              elif [[ "$ch" == ")" ]]; then
+                ((paren>0)) && ((paren-=1)) || true
+              fi
+
+              if [[ "$ch" == "$delim" && $square -eq 0 && $curly -eq 0 && $paren -eq 0 ]]; then
+                out_ref+=("$current")
+                current=""
+                continue
+              fi
+
+              current+="$ch"
+            done
+
+            if [[ -n "${current// }" ]]; then
+              out_ref+=("$current")
+            fi
+          }
+
+          trim() {
+            local var="$1"
+            var="${var#"${var%%[![:space:]]*}"}"
+            var="${var%"${var##*[![:space:]]}"}"
+            printf '%s' "$var"
+          }
+
+          is_exception_parent_key() {
+            local key="$1"
+            case "$key" in
+              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations)
+                return 0
+                ;;
+              *)
+                return 1
+                ;;
+            esac
+          }
+
+          echo "=== Fuzzy Matching Suggestions ==="
+
+          segments=()
+          split_top_level "$OVERRIDE_YAML" ";" segments
+
+          for segment in "${segments[@]}"; do
+            segment="$(trim "$segment")"
+            [[ -z "$segment" ]] && continue
+
+            parts=()
+            split_top_level "$segment" "~" parts
+            
+            value="$(trim "${parts[${#parts[@]}-1]}")"
+            unset 'parts[${#parts[@]}-1]'
+
+            path_str=""
+            for part in "${parts[@]}"; do
+              part="$(trim "$part")"
+              if [[ -z "$path_str" ]]; then
+                path_str="$part"
+              else
+                path_str+="~$part"
+              fi
+            done
+
+            # Test each path to find which one fails
+            local path_parts=()
+            split_top_level "$path_str" "~" path_parts
+            
+            local first
+            first="$(trim "${path_parts[0]}")"
+            
+            # Check if parent key exists
+            if ! yq -e ".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\"" "$REF_FILE" >/dev/null 2>&1; then
+              echo ""
+              echo "❌ Invalid path: $path_str"
+              echo "   Parent key '$first' not found at root level"
+              
+              # Get fuzzy suggestions for root keys
+              local root_keys
+              root_keys="$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null)"
+              
+              if [[ -n "$root_keys" ]]; then
+                local input_lower
+                input_lower="$(echo "$first" | tr '[:upper:]' '[:lower:]')"
+                local input_len=${#input_lower}
+                local fuzzy_results=""
+                
+                for ((len=1; len<=input_len; len++)); do
+                  local substring="${input_lower:0:$len}"
+                  if [[ -n "$fuzzy_results" ]]; then
+                    break
+                  fi
+                  while IFS= read -r key; do
+                    [[ -z "$key" ]] && continue
+                    local key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+                    if [[ "$key_lower" == "$substring"* ]]; then
+                      [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$key" || fuzzy_results="$key"
+                    fi
+                  done <<< "$root_keys"
+                done
+                
+                if [[ -z "$fuzzy_results" ]]; then
+                  while IFS= read -r key; do
+                    [[ -z "$key" ]] && continue
+                    local key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+                    if [[ "$key_lower" == *"$input_lower"* ]]; then
+                      [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$key" || fuzzy_results="$key"
+                    fi
+                  done <<< "$root_keys"
+                fi
+                
+                if [[ -n "$fuzzy_results" ]]; then
+                  echo "   💡 Did you mean? $fuzzy_results"
+                fi
+              fi
+            else
+              # Check child keys
+              local expr=".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\""
+              local found_error=0
+              
+              for ((p=1; p<${#path_parts[@]}; p++)); do
+                local seg
+                seg="$(trim "${path_parts[$p]}")"
+                local next_expr="$expr | select(type == \"!!map\" and has(\"$seg\")) | .\"$seg\""
+
+                if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
+                  echo ""
+                  echo "❌ Invalid path: $path_str"
+                  echo "   Child key '$seg' not found under '${path_parts[$((p-1))]}'."
+                  
+                  local parent_key="${path_parts[$((p-1))]}"
+                  local parent_children
+                  parent_children="$(yq -r ".\"$parent_key\" | keys | .[]" "$REF_FILE" 2>/dev/null)"
+                  
+                  if [[ -n "$parent_children" ]]; then
+                    local input_lower
+                    input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
+                    local input_len=${#input_lower}
+                    local fuzzy_results=""
+                    
+                    for ((len=1; len<=input_len; len++)); do
+                      local substring="${input_lower:0:$len}"
+                      if [[ -n "$fuzzy_results" ]]; then
+                        break
+                      fi
+                      while IFS= read -r child; do
+                        [[ -z "$child" ]] && continue
+                        local child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+                        if [[ "$child_lower" == "$substring"* ]]; then
+                          [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
+                        fi
+                      done <<< "$parent_children"
+                    done
+                    
+                    if [[ -z "$fuzzy_results" ]]; then
+                      while IFS= read -r child; do
+                        [[ -z "$child" ]] && continue
+                        local child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
+                        if [[ "$child_lower" == *"$input_lower"* ]]; then
+                          [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
+                        fi
+                      done <<< "$parent_children"
+                    fi
+                    
+                    if [[ -n "$fuzzy_results" ]]; then
+                      echo "   💡 Did you mean? $fuzzy_results"
+                    fi
+                  fi
+                  found_error=1
+                  break
+                fi
+                
+                expr="$next_expr"
+              done
+            fi
+          done
+
+          exit 1
 
       - name: Run the patching script
         # Pass OverrideYaml as an env var so multiline newlines are preserved.
