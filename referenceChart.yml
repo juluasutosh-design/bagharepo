@@ -192,5 +192,9 @@ julu-deploy:
       enabled: false
     smb:
       enabled: false
-      config: []   
+      config: []
+  azureSpSecrets:
+    { }
+    # ClientID: AZURE_CLIENT_ID
+    # ClientSecret: AZURE_CLIENT_SECRET     
       
