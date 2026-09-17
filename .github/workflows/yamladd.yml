@@ -240,7 +240,7 @@ jobs:
             fi
 
             echo "Ambiguous shorthand key '$token'. Matching paths: $(printf '%s\n' "${matches[@]}" | tr '\n' ', ' | sed 's/, $//') (${#matches[@]} matches). Exiting." >&2
-            return 2
+            return 0
           }
 
           get_exception_parent_path() {
