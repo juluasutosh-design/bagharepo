@@ -197,7 +197,7 @@ julu-deploy:
     { }
     # ClientID: AZURE_CLIENT_ID
     # ClientSecret: AZURE_CLIENT_SECRET
-  podResources: {}
+  podResources:
     requests:
       cpu: 1
       memory: 1Gi
