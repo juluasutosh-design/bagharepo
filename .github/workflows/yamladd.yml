@@ -456,6 +456,74 @@ jobs:
 
           echo "yq validation passed for OverrideYaml"
 
+          normalize_override_yaml() {
+            local raw="${1:-}"
+            [[ -z "$raw" ]] && { echo ""; return 0; }
+
+            local segments=()
+            split_top_level "$raw" ";" segments
+
+            local normalized=()
+            for segment in "${segments[@]}"; do
+              segment="$(trim "$segment")"
+              [[ -z "$segment" ]] && continue
+
+              local parts=()
+              split_top_level "$segment" "~" parts
+
+              if [[ ${#parts[@]} -lt 2 ]]; then
+                echo "Invalid override segment: $segment" >&2
+                exit 1
+              fi
+
+              local value="${parts[${#parts[@]}-1]}"
+              local path_parts=("${parts[@]:0:${#parts[@]}-1}")
+
+              if [[ ${#path_parts[@]} -eq 1 ]]; then
+                local resolved
+                if resolved="$(resolve_single_token_path "$(trim "${path_parts[0]}")")"; then
+                  path_parts=()
+                  split_top_level "$resolved" "~" path_parts
+                else
+                  local rc=$?
+                  if [[ $rc -eq 2 ]]; then
+                    exit 1
+                  fi
+                  echo "Unable to resolve shorthand key '$(trim "${path_parts[0]}")'" >&2
+                  exit 1
+                fi
+              fi
+
+              local joined=""
+              for part in "${path_parts[@]}"; do
+                part="$(trim "$part")"
+                [[ -z "$part" ]] && continue
+                if [[ -z "$joined" ]]; then
+                  joined="$part"
+                else
+                  joined+="~$part"
+                fi
+              done
+
+              normalized+=("${joined}~${value}")
+            done
+
+            local output=""
+            for item in "${normalized[@]}"; do
+              if [[ -z "$output" ]]; then
+                output="$item"
+              else
+                output+=";$item"
+              fi
+            done
+
+            printf '%s' "$output"
+          }
+
+          RESOLVED_OVERRIDE_YAML="$(normalize_override_yaml "$OVERRIDE_YAML")"
+          echo "RESOLVED_OVERRIDE_YAML=$RESOLVED_OVERRIDE_YAML" >> "$GITHUB_ENV"
+          echo "Resolved OverrideYaml: $RESOLVED_OVERRIDE_YAML"
+
       - name: Fuzzy Match Suggestions
         if: failure()
         env:
@@ -717,176 +785,21 @@ jobs:
           done
 
           exit 1
-
       - name: Run the patching script
-        # Pass OverrideYaml as an env var so multiline newlines are preserved.
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+          RESOLVED_OVERRIDE_YAML: ${{ env.RESOLVED_OVERRIDE_YAML }}
           ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
           CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
         shell: bash
         run: |
           set -euo pipefail
 
-          REF_FILE="./referenceChart.yml"
+          if [[ -n "${RESOLVED_OVERRIDE_YAML:-}" ]]; then
+            export OVERRIDE_YAML="$RESOLVED_OVERRIDE_YAML"
+          fi
 
-          split_top_level() {
-            local text="$1"
-            local delim="$2"
-            local -n out_ref=$3
-            out_ref=()
-
-            local square=0
-            local curly=0
-            local paren=0
-            local quote=""
-            local escaped=0
-            local current=""
-            local ch=""
-
-            for ((i=0; i<${#text}; i++)); do
-              ch="${text:$i:1}"
-
-              if [[ -n "$quote" ]]; then
-                current+="$ch"
-                if (( escaped == 1 )); then
-                  escaped=0
-                  continue
-                fi
-                if [[ "$ch" == "\\" ]]; then
-                  escaped=1
-                  continue
-                fi
-                if [[ "$ch" == "$quote" ]]; then
-                  quote=""
-                fi
-                continue
-              fi
-
-              if [[ "$ch" == '"' || "$ch" == "'" ]]; then
-                quote="$ch"
-                current+="$ch"
-                continue
-              fi
-
-              if [[ "$ch" == "[" ]]; then
-                ((square+=1))
-              elif [[ "$ch" == "]" ]]; then
-                ((square>0)) && ((square-=1)) || true
-              elif [[ "$ch" == "{" ]]; then
-                ((curly+=1))
-              elif [[ "$ch" == "}" ]]; then
-                ((curly>0)) && ((curly-=1)) || true
-              elif [[ "$ch" == "(" ]]; then
-                ((paren+=1))
-              elif [[ "$ch" == ")" ]]; then
-                ((paren>0)) && ((paren-=1)) || true
-              fi
-
-              if [[ "$ch" == "$delim" && $square -eq 0 && $curly -eq 0 && $paren -eq 0 ]]; then
-                out_ref+=("$current")
-                current=""
-                continue
-              fi
-
-              current+="$ch"
-            done
-
-            if [[ -n "${current// }" ]]; then
-              out_ref+=("$current")
-            fi
-          }
-
-          trim() {
-            local var="$1"
-            var="${var#"${var%%[![:space:]]*}"}"
-            var="${var%"${var##*[![:space:]]}"}"
-            printf '%s' "$var"
-          }
-
-          resolve_single_token_path() {
-            local token="$1"
-            local matches
-            matches="$(yq -r '.. | select(type == "!!map" and has('"'"'$token'"'"')) | path | . + ['"'"'$token'"'"'] | map(tostring) | join("~")' "$REF_FILE" 2>/dev/null | sort -u)"
-
-            if [[ -z "$matches" ]]; then
-              return 1
-            fi
-
-            local count
-            count="$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')"
-
-            if [[ "$count" == "1" ]]; then
-              printf '%s\n' "$matches"
-              return 0
-            fi
-
-            echo "Ambiguous shorthand key '$token'. Matching paths: $(echo "$matches" | tr '\n' ', ' | sed 's/, $//') ($count matches). Exiting." >&2
-            exit 1
-          }
-
-          normalize_override_yaml() {
-            local raw="${1:-}"
-            [[ -z "$raw" ]] && { echo ""; return 0; }
-
-            local segments=()
-            split_top_level "$raw" ";" segments
-
-            local normalized=()
-            for segment in "${segments[@]}"; do
-              segment="$(trim "$segment")"
-              [[ -z "$segment" ]] && continue
-
-              local parts=()
-              split_top_level "$segment" "~" parts
-
-              if [[ ${#parts[@]} -lt 2 ]]; then
-                echo "Invalid override segment: $segment" >&2
-                exit 1
-              fi
-
-              local value="${parts[${#parts[@]}-1]}"
-              local path_parts=("${parts[@]:0:${#parts[@]}-1}")
-
-              if [[ ${#path_parts[@]} -eq 1 ]]; then
-                local resolved
-                if ! resolved="$(resolve_single_token_path "$(trim "${path_parts[0]}")")"; then
-                  exit 1
-                fi
-
-                local resolved_parts=()
-                split_top_level "$resolved" "~" resolved_parts
-                path_parts=("${resolved_parts[@]}")
-              fi
-
-              local joined=""
-              for part in "${path_parts[@]}"; do
-                part="$(trim "$part")"
-                [[ -z "$part" ]] && continue
-                if [[ -z "$joined" ]]; then
-                  joined="$part"
-                else
-                  joined+="~$part"
-                fi
-              done
-
-              normalized+=("${joined}~${value}")
-            done
-
-            local output=""
-            for item in "${normalized[@]}"; do
-              if [[ -z "$output" ]]; then
-                output="$item"
-              else
-                output+=";$item"
-              fi
-            done
-
-            printf '%s\n' "$output"
-          }
-
-          export OVERRIDE_YAML="$(normalize_override_yaml "$OVERRIDE_YAML")"
-          echo "Resolved OverrideYaml: $OVERRIDE_YAML"
+          echo "Using OverrideYaml: $OVERRIDE_YAML"
           node app.js
 
       - name: fetch name
