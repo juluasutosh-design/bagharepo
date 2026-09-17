@@ -224,7 +224,7 @@ jobs:
               return 0
             fi
 
-            echo "Ambiguous shorthand key '$token'. Provide full path. Matches: $(echo "$matches" | tr '\n' ',' | sed 's/,$//')"
+            echo "Ambiguous shorthand key '$token'. Provide full path. Matches: $(echo "$matches" | tr '\n' ',' | sed 's/,$//')" >&2
             return 2
           }
 
@@ -271,17 +271,15 @@ jobs:
             local first
             first="$(trim "${path_parts[0]}")"
 
-            if [[ ${#path_parts[@]} -eq 1 ]]; then
-              local resolved_path
-              if resolved_path="$(resolve_single_token_path "$first")"; then
-                path_str="$resolved_path"
-                split_top_level "$path_str" "~" path_parts
-                first="$(trim "${path_parts[0]}")"
-              else
-                local rc=$?
-                if [[ $rc -eq 2 ]]; then
-                  return 1
-                fi
+            local resolved_path
+            if resolved_path="$(resolve_single_token_path "$first")"; then
+              path_str="$resolved_path"
+              split_top_level "$path_str" "~" path_parts
+              first="$(trim "${path_parts[0]}")"
+            else
+              local rc=$?
+              if [[ $rc -eq 2 ]]; then
+                return 1
               fi
             fi
 
@@ -569,7 +567,7 @@ jobs:
               return 0
             fi
 
-            echo "Ambiguous shorthand key '$token'. Provide full path. Matches: $(echo "$matches" | tr '\n' ',' | sed 's/,$//')"
+            echo "Ambiguous shorthand key '$token'. Provide full path. Matches: $(echo "$matches" | tr '\n' ',' | sed 's/,$//')" >&2
             return 2
           }
 
@@ -601,8 +599,8 @@ jobs:
             resolved_first=""
             resolve_rc=0
 
-            if [[ "$path_str" != *"~"* && "$path_str" != *"["* ]]; then
-              if ! resolved_first="$(resolve_single_token_path "$path_str")"; then
+            if [[ "$path_str" != *"["* ]]; then
+              if ! resolved_first="$(resolve_single_token_path "$first")"; then
                 resolve_rc=$?
               else
                 path_str="$resolved_first"
