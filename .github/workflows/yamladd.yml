@@ -547,7 +547,7 @@ jobs:
         run: |
           if [[ "${ambi}" == "set" ]]; then 
             echo "exiting Matching as the key is already ambigious"
-            exit 0
+            exit 1
           fi  
           REF_FILE="./referenceChart.yml"
 
