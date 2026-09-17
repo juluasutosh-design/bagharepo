@@ -240,7 +240,7 @@ jobs:
             fi
 
             echo "Ambiguous shorthand key '$token'. Matching paths: $(printf '%s\n' "${matches[@]}" | tr '\n' ', ' | sed 's/, $//') (${#matches[@]} matches). Exiting." >&2
-            exit 0
+            ambi="set"
             return 2
           }
 
@@ -545,6 +545,10 @@ jobs:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
         shell: bash
         run: |
+          if [[ "${ambi}" == "set" ]]; then 
+            echo "exiting Matching as the key is already ambigious"
+            exit 0
+          fi  
           REF_FILE="./referenceChart.yml"
 
           split_top_level() {
