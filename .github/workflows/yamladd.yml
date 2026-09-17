@@ -488,8 +488,6 @@ jobs:
                   if [[ $rc -eq 2 ]]; then
                     exit 1
                   fi
-                  echo "Unable to resolve shorthand key '$(trim "${path_parts[0]}")'" >&2
-                  exit 1
                 fi
               fi
 
