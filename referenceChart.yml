@@ -196,5 +196,11 @@ julu-deploy:
   azureSpSecrets:
     { }
     # ClientID: AZURE_CLIENT_ID
-    # ClientSecret: AZURE_CLIENT_SECRET     
-      
+    # ClientSecret: AZURE_CLIENT_SECRET
+  podResources: {}
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+    cpu: 2
+    memory: 2Gi      
