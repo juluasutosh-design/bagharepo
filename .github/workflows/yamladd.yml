@@ -514,6 +514,28 @@ jobs:
             esac
           }
 
+          resolve_single_token_path() {
+            local token="$1"
+
+            local matches
+            matches="$(yq -r '.. | select(type == "!!map" and has("'"'$token'"'")) | path | . + ["'"'$token'"'"] | map(tostring) | join("~")' "$REF_FILE" 2>/dev/null | sort -u)"
+
+            if [[ -z "$matches" ]]; then
+              return 1
+            fi
+
+            local count
+            count="$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')"
+
+            if [[ "$count" == "1" ]]; then
+              printf '%s' "$matches"
+              return 0
+            fi
+
+            echo "Ambiguous shorthand key '$token'. Provide full path. Matches: $(echo "$matches" | tr '\n' ',' | sed 's/,$//')"
+            return 2
+          }
+
           echo "=== Fuzzy Matching Suggestions ==="
 
           segments=()
@@ -539,6 +561,24 @@ jobs:
               fi
             done
 
+            resolved_first=""
+            resolve_rc=0
+
+            if [[ "$path_str" != *"~"* && "$path_str" != *"["* ]]; then
+              if ! resolved_first="$(resolve_single_token_path "$path_str")"; then
+                resolve_rc=$?
+              else
+                path_str="$resolved_first"
+                path_parts=()
+                split_top_level "$path_str" "~" path_parts
+                first="$(trim "${path_parts[0]}")"
+              fi
+            fi
+
+            if [[ $resolve_rc -eq 2 ]]; then
+              exit 1
+            fi
+
             # Test each path to find which one fails
             path_parts=()
             split_top_level "$path_str" "~" path_parts
@@ -549,12 +589,12 @@ jobs:
             if ! yq -e ".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\"" "$REF_FILE" >/dev/null 2>&1; then
               echo ""
               echo "❌ Invalid path: $path_str"
-              echo "   Parent key '$first' not found at root level"
+              echo "   Parent key '$first' not found in referenceChart.yml"
               
-              # Get fuzzy suggestions for root keys
-              root_keys="$(yq -r '.. | select(tag == "!!map") | keys | .[]' "$REF_FILE" 2>/dev/null | sort -u)"
+              # Get fuzzy suggestions across the full tree
+              all_keys="$(yq -r '.. | select(tag == "!!map") | keys | .[]' "$REF_FILE" 2>/dev/null | sort -u)"
               
-              if [[ -n "$root_keys" ]]; then
+              if [[ -n "$all_keys" ]]; then
                 input_lower="$(echo "$first" | tr '[:upper:]' '[:lower:]')"
                 input_len=${#input_lower}
                 fuzzy_results=""
@@ -570,7 +610,7 @@ jobs:
                     if [[ "$key_lower" == "$substring"* ]]; then
                       [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$key" || fuzzy_results="$key"
                     fi
-                  done <<< "$root_keys"
+                  done <<< "$all_keys"
                 done
                 
                 if [[ -z "$fuzzy_results" ]]; then
@@ -580,7 +620,7 @@ jobs:
                     if [[ "$key_lower" == *"$input_lower"* ]]; then
                       [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$key" || fuzzy_results="$key"
                     fi
-                  done <<< "$root_keys"
+                  done <<< "$all_keys"
                 fi
                 
                 if [[ -n "$fuzzy_results" ]]; then
