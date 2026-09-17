@@ -202,5 +202,5 @@ julu-deploy:
       cpu: 1
       memory: 1Gi
     limits:
-    cpu: 2
-    memory: 2Gi      
+      cpu: 2
+      memory: 2Gi      
