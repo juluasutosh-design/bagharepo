@@ -219,8 +219,9 @@ jobs:
               [[ -z "$top_key" ]] && continue
 
               # Search within this top-level key's subtree for the token
+              # Note: path returns absolute path including top_key, so we skip first element with .[1:]
               local results
-              results=$(yq -r ".\"$top_key\" | .. | select(type == \"!!map\" and has(\"$token\")) | path | . + [\"$token\"] | map(tostring) | join(\"~\")" "$REF_FILE" 2>/dev/null)
+              results=$(yq -r ".\"$top_key\" | .. | select(type == \"!!map\" and has(\"$token\")) | path | .[1:] + [\"$token\"] | map(tostring) | join(\"~\")" "$REF_FILE" 2>/dev/null)
 
               # For each path found, prepend the top-level key
               while IFS= read -r path; do
@@ -632,8 +633,9 @@ jobs:
               [[ -z "$top_key" ]] && continue
 
               # Search within this top-level key's subtree for the token
+              # Note: path returns absolute path including top_key, so we skip first element with .[1:]
               local results
-              results=$(yq -r ".\"$top_key\" | .. | select(type == \"!!map\" and has(\"$token\")) | path | . + [\"$token\"] | map(tostring) | join(\"~\")" "$REF_FILE" 2>/dev/null)
+              results=$(yq -r ".\"$top_key\" | .. | select(type == \"!!map\" and has(\"$token\")) | path | .[1:] + [\"$token\"] | map(tostring) | join(\"~\")" "$REF_FILE" 2>/dev/null)
 
               # For each path found, prepend the top-level key
               while IFS= read -r path; do
