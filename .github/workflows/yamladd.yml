@@ -208,23 +208,19 @@ jobs:
 
           resolve_single_token_path() {
             local token="$1"
+            local matches=()
+            mapfile -t matches < <(yq -r '.. | select(type == "!!map" and has('"'"'$token'"'"')) | path | . + ['"'"'$token'"'"'] | map(tostring) | join("~")' "$REF_FILE" 2>/dev/null | sort -u)
 
-            local matches
-            matches="$(yq -r '.. | select(type == "!!map" and has('"'"'$token'"'"')) | path | . + ['"'"'$token'"'"'] | map(tostring) | join("~")' "$REF_FILE" 2>/dev/null | sort -u)"
-
-            if [[ -z "$matches" ]]; then
+            if [[ ${#matches[@]} -eq 0 ]]; then
               return 1
             fi
 
-            local count
-            count="$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')"
-
-            if [[ "$count" == "1" ]]; then
-              printf '%s\n' "$matches"
+            if [[ ${#matches[@]} -eq 1 ]]; then
+              printf '%s\n' "${matches[0]}"
               return 0
             fi
 
-            echo "Ambiguous shorthand key '$token'. Matching paths: $(echo "$matches" | tr '\n' ', ' | sed 's/, $//') ($count matches). Exiting." >&2
+            echo "Ambiguous shorthand key '$token'. Matching paths: $(printf '%s\n' "${matches[@]}" | tr '\n' ', ' | sed 's/, $//') (${#matches[@]} matches). Exiting." >&2
             return 2
           }
 
@@ -480,14 +476,16 @@ jobs:
 
               if [[ ${#path_parts[@]} -eq 1 ]]; then
                 local resolved
-                if resolved="$(resolve_single_token_path "$(trim "${path_parts[0]}")")"; then
+                resolved="$(resolve_single_token_path "$(trim "${path_parts[0]}")")"
+                local rc=$?
+                if [[ $rc -eq 0 ]]; then
                   path_parts=()
                   split_top_level "$resolved" "~" path_parts
+                elif [[ $rc -eq 2 ]]; then
+                  exit 1
                 else
-                  local rc=$?
-                  if [[ $rc -eq 2 ]]; then
-                    exit 1
-                  fi
+                  echo "Unable to resolve shorthand key '$(trim "${path_parts[0]}")'" >&2
+                  exit 1
                 fi
               fi
 
@@ -605,15 +603,15 @@ jobs:
 
           resolve_single_token_path() {
             local token="$1"
-            local matches
-            matches="$(yq -r '.. | select(type == "!!map" and has('"'"'$token'"'"')) | path | . + ['"'"'$token'"'"'] | map(tostring) | join("~")' "$REF_FILE" 2>/dev/null | sort -u)"
+            local matches=()
+            mapfile -t matches < <(yq -r '.. | select(type == "!!map" and has('"'"'$token'"'"')) | path | . + ['"'"'$token'"'"'] | map(tostring) | join("~")' "$REF_FILE" 2>/dev/null | sort -u)
 
-            if [[ -z "$matches" ]]; then
+            if [[ ${#matches[@]} -eq 0 ]]; then
               return 1
             fi
 
             local count
-            count="$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')"
+            count="$(printf '%s\n' "${matches[@]}" | sed '/^$/d' | wc -l | tr -d ' ')"
 
             if [[ "$count" == "1" ]]; then
               printf '%s\n' "$matches"
