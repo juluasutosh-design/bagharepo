@@ -209,7 +209,25 @@ jobs:
           resolve_single_token_path() {
             local token="$1"
             local matches=()
-            mapfile -t matches < <(yq -r '.. | select(type == "!!map" and has('"'"'$token'"'"')) | path | . + ['"'"'$token'"'"'] | map(tostring) | join("~")' "$REF_FILE" 2>/dev/null | sort -u)
+
+            # Get all top-level keys (node names)
+            local top_keys
+            top_keys=$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null)
+
+            # For each top-level key, search for the token within that subtree
+            while IFS= read -r top_key; do
+              [[ -z "$top_key" ]] && continue
+
+              # Search within this top-level key's subtree for the token
+              local results
+              results=$(yq -r ".\"$top_key\" | .. | select(type == \"!!map\" and has(\"$token\")) | path | . + [\"$token\"] | map(tostring) | join(\"~\")" "$REF_FILE" 2>/dev/null)
+
+              # For each path found, prepend the top-level key
+              while IFS= read -r path; do
+                [[ -z "$path" ]] && continue
+                matches+=("${top_key}~${path}")
+              done <<< "$results"
+            done <<< "$top_keys"
 
             if [[ ${#matches[@]} -eq 0 ]]; then
               return 1
@@ -604,21 +622,36 @@ jobs:
           resolve_single_token_path() {
             local token="$1"
             local matches=()
-            mapfile -t matches < <(yq -r '.. | select(type == "!!map" and has('"'"'$token'"'"')) | path | . + ['"'"'$token'"'"'] | map(tostring) | join("~")' "$REF_FILE" 2>/dev/null | sort -u)
+
+            # Get all top-level keys (node names)
+            local top_keys
+            top_keys=$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null)
+
+            # For each top-level key, search for the token within that subtree
+            while IFS= read -r top_key; do
+              [[ -z "$top_key" ]] && continue
+
+              # Search within this top-level key's subtree for the token
+              local results
+              results=$(yq -r ".\"$top_key\" | .. | select(type == \"!!map\" and has(\"$token\")) | path | . + [\"$token\"] | map(tostring) | join(\"~\")" "$REF_FILE" 2>/dev/null)
+
+              # For each path found, prepend the top-level key
+              while IFS= read -r path; do
+                [[ -z "$path" ]] && continue
+                matches+=("${top_key}~${path}")
+              done <<< "$results"
+            done <<< "$top_keys"
 
             if [[ ${#matches[@]} -eq 0 ]]; then
               return 1
             fi
 
-            local count
-            count="$(printf '%s\n' "${matches[@]}" | sed '/^$/d' | wc -l | tr -d ' ')"
-
-            if [[ "$count" == "1" ]]; then
-              printf '%s\n' "$matches"
+            if [[ ${#matches[@]} -eq 1 ]]; then
+              printf '%s\n' "${matches[0]}"
               return 0
             fi
 
-            echo "Ambiguous shorthand key '$token'. Matching paths: $(echo "$matches" | tr '\n' ', ' | sed 's/, $//') ($count matches). Exiting." >&2
+            echo "Ambiguous shorthand key '$token'. Matching paths: $(printf '%s\n' "${matches[@]}" | tr '\n' ', ' | sed 's/, $//') (${#matches[@]} matches). Exiting." >&2
             return 2
           }
 
