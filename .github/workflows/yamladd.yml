@@ -210,7 +210,7 @@ jobs:
             local token="$1"
 
             local matches
-            matches="$(yq -r '.. | select(type == "!!map" and has("'"'$token'"'")) | path | . + ["'"'$token'"'"] | map(tostring) | join("~")' "$REF_FILE" 2>/dev/null | sort -u)"
+            matches="$(yq -r '.. | select(type == "!!map" and has('"'"'$token'"'"')) | path | . + ['"'"'$token'"'"'] | map(tostring) | join("~")' "$REF_FILE" 2>/dev/null | sort -u)"
 
             if [[ -z "$matches" ]]; then
               return 1
@@ -220,12 +220,11 @@ jobs:
             count="$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')"
 
             if [[ "$count" == "1" ]]; then
-              printf '%s' "$matches"
+              printf '%s\n' "$matches"
               return 0
             fi
 
-            paths="$(echo "$matches" | tr '\n' ', ' | sed 's/, $//')"
-            echo "Ambiguous shorthand key '$token'. Matching paths: $paths ($count matches). Exiting." >&2
+            echo "Ambiguous shorthand key '$token'. Matching paths: $(echo "$matches" | tr '\n' ', ' | sed 's/, $//') ($count matches). Exiting." >&2
             return 2
           }
 
@@ -624,7 +623,7 @@ jobs:
             fi
 
             echo "Ambiguous shorthand key '$token'. Matching paths: $(echo "$matches" | tr '\n' ', ' | sed 's/, $//') ($count matches). Exiting." >&2
-            exit 1
+            return 2
           }
 
           echo "=== Fuzzy Matching Suggestions ==="
