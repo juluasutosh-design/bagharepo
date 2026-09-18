@@ -12,3 +12,6 @@ julu-deploy:
       registry: xyz.azurecr.io
     minReplicas: 2
     maxReplicas: 8
+  podResources:
+    requests:
+      memory: 5gi
