@@ -12,8 +12,9 @@ julu-deploy:
       registry: xyz.azurecr.io
     minReplicas: 2
     maxReplicas: 8
+    
   keyVault:
-  # -- Keyvault Name to pull secrets for the application
+  # -- tag: 25.25.25 Keyvault Name to pull secrets for the application
     name: mykv
   # -- Service Principal to use to pull secrets from Keyvault
     spName: mysp
