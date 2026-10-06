@@ -835,9 +835,9 @@ jobs:
       - name: fetch name
         id: region
         run: |
-          if [[ "${{ github.event.inputs.environment_files }}" == "*uat*" ]]; then
+          if [[ "${{ github.event.inputs.environment_files }}" == uat* ]]; then
             echo "region=uat" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event.inputs.environment_files }}" == "*prod*" ]]; then
+          elif [[ "${{ github.event.inputs.environment_files }}" == *prod* ]]; then
             echo "region=prod" >> $GITHUB_OUTPUT
           fi
       - name: Commit and Push changes
@@ -848,7 +848,7 @@ jobs:
           git add .
           if git diff --quiet; then
             git commit -m "chore(ci):Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }} in release ${{ github.event.inputs.Release }}"
-            git push --set-upstream feature/update-${{ steps.region.outputs.region }}-yaml-files-${{ github.event.inputs.Release }}
+            git push --set-upstream origin feature/update-${{ steps.region.outputs.region }}-yaml-files-${{ github.event.inputs.Release }}
           else
             echo "No changes to commit"
           fi
