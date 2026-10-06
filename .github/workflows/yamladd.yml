@@ -837,8 +837,10 @@ jobs:
         run: |
           if [[ "${{ github.event.inputs.environment_files }}" == uat* ]]; then
             echo "region=uat" >> $GITHUB_OUTPUT
+            echo "I am in "
           elif [[ "${{ github.event.inputs.environment_files }}" == *prod* ]]; then
             echo "region=prod" >> $GITHUB_OUTPUT
+            echo "I am out"
           fi
       - name: Commit and Push changes
         run: |
