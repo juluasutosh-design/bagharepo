@@ -197,7 +197,7 @@ jobs:
           is_exception_parent_key() {
             local key="$1"
             case "$key" in
-              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations)
+              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations|azureSpSecrets)
                 return 0
                 ;;
               *)
