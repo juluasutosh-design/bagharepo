@@ -8,7 +8,11 @@ julu-deploy:
       enabled: true
     image:
       name: exp-ui
+<<<<<<< Updated upstream
       tag: 1.2.9
+=======
+      tag: 2.2.8999
+>>>>>>> Stashed changes
       registry: xyz.azurecr.io
     minReplicas: 2
     maxReplicas: 8
