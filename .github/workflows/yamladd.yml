@@ -12,7 +12,7 @@ on:
         description: "Select Release , Used to create branch with name and also used in PR title"
         type: choice
         required: true
-        options:
+        options:refere
           - 2026-JAN-I
           - 2026-JAN-II
           - 2026-FEB-I
@@ -223,7 +223,7 @@ jobs:
           is_exception_parent_key() {
             local key="$1"
             case "$key" in
-              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations)
+              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations|azureSpSecrets)
                 return 0
                 ;;
               *)
