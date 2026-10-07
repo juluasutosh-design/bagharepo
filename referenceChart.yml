@@ -193,9 +193,9 @@ julu-deploy:
     smb:
       enabled: false
       config:
-  azureSpSecrets: {}
-    # ClientID: AZURE_CLIENT_ID
-    # ClientSecret: AZURE_CLIENT_SECRET
+  azureSpSecrets:
+    ClientID: AZURE_CLIENT_ID
+    ClientSecret: AZURE_CLIENT_SECRET
   podResources:
     requests:
       cpu: 1
