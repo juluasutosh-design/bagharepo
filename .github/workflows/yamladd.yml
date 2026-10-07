@@ -197,7 +197,7 @@ jobs:
           is_exception_parent_key() {
             local key="$1"
             case "$key" in
-              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations|azureSpSecrets)
+              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations)
                 return 0
                 ;;
               *)
@@ -833,24 +833,22 @@ jobs:
           node app.js
 
       - name: fetch name
-        id: region
         run: |
-          if [[ "${{ github.event.inputs.environment_files }}" == uat* ]]; then
-            echo "region=uat" >> $GITHUB_OUTPUT
-            echo "I am in "
-          elif [[ "${{ github.event.inputs.environment_files }}" == *prod* ]]; then
-            echo "region=prod" >> $GITHUB_OUTPUT
-            echo "I am out"
+          if [[ "${{ github.event.inputs.environment_files }}" == "*uat*" ]]; then
+            echo "envs=$(echo uat)" >> $GITHUB_ENV
+          elif [[ "${{ github.event.inputs.environment_files }}" == "*prod*" ]]; then
+            echo "envs=$(echo prod)" >> $GITHUB_ENV
           fi
       - name: Commit and Push changes
         run: |
-          git checkout -b feature/update-${{ steps.region.outputs.region }}-yaml-files-${{ github.event.inputs.Release }}
+          git checkout -b feature/update-${{ env.envs }}-yaml-files-${{ github.event.inputs.Release }}
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           if git diff --quiet; then
+            git pull
             git commit -m "chore(ci):Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }} in release ${{ github.event.inputs.Release }}"
-            git push --set-upstream origin feature/update-${{ steps.region.outputs.region }}-yaml-files-${{ github.event.inputs.Release }}
+            git push --set-upstream origin feature/update-${{ env.envs }}-yaml-files-${{ github.event.inputs.Release }}
           else
             echo "No changes to commit"
           fi
