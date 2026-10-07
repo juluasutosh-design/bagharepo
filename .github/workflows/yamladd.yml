@@ -288,7 +288,23 @@ jobs:
 
             local resolved_path
             if resolved_path="$(resolve_single_token_path "$first")"; then
-              path_str="$resolved_path"
+              local rebuilt_path_parts=()
+              split_top_level "$resolved_path" "~" rebuilt_path_parts
+              for ((idx=1; idx<${#path_parts[@]}; idx++)); do
+                rebuilt_path_parts+=("${path_parts[$idx]}")
+              done
+
+              path_str=""
+              for part in "${rebuilt_path_parts[@]}"; do
+                part="$(trim "$part")"
+                [[ -z "$part" ]] && continue
+                if [[ -z "$path_str" ]]; then
+                  path_str="$part"
+                else
+                  path_str+="~$part"
+                fi
+              done
+
               split_top_level "$path_str" "~" path_parts
               first="$(trim "${path_parts[0]}")"
             else
@@ -493,18 +509,24 @@ jobs:
               local value="${parts[${#parts[@]}-1]}"
               local path_parts=("${parts[@]:0:${#parts[@]}-1}")
 
-              if [[ ${#path_parts[@]} -eq 1 ]]; then
+              if [[ ${#path_parts[@]} -ge 1 ]]; then
                 local resolved
                 resolved="$(resolve_single_token_path "$(trim "${path_parts[0]}")")"
                 local rc=$?
                 if [[ $rc -eq 0 ]]; then
-                  path_parts=()
-                  split_top_level "$resolved" "~" path_parts
+                  local rebuilt_path_parts=()
+                  split_top_level "$resolved" "~" rebuilt_path_parts
+                  for ((idx=1; idx<${#path_parts[@]}; idx++)); do
+                    rebuilt_path_parts+=("${path_parts[$idx]}")
+                  done
+                  path_parts=("${rebuilt_path_parts[@]}")
                 elif [[ $rc -eq 2 ]]; then
                   exit 1
-                else
+                elif [[ ${#path_parts[@]} -eq 1 ]]; then
                   echo "Unable to resolve shorthand key '$(trim "${path_parts[0]}")'" >&2
                   exit 1
+                else
+                  :
                 fi
               fi
 
@@ -691,7 +713,23 @@ jobs:
 
             if [[ "$path_str" != *"["* ]]; then
               if resolved_first="$(resolve_single_token_path "$first")"; then
-                path_str="$resolved_first"
+                rebuilt_path_parts=()
+                split_top_level "$resolved_first" "~" rebuilt_path_parts
+                for ((idx=1; idx<${#path_parts[@]}; idx++)); do
+                  rebuilt_path_parts+=("${path_parts[$idx]}")
+                done
+
+                path_str=""
+                for part in "${rebuilt_path_parts[@]}"; do
+                  part="$(trim "$part")"
+                  [[ -z "$part" ]] && continue
+                  if [[ -z "$path_str" ]]; then
+                    path_str="$part"
+                  else
+                    path_str+="~$part"
+                  fi
+                done
+
                 path_parts=()
                 split_top_level "$path_str" "~" path_parts
                 first="$(trim "${path_parts[0]}")"
