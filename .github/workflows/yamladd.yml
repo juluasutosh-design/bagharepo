@@ -12,7 +12,7 @@ on:
         description: "Select Release , Used to create branch with name and also used in PR title"
         type: choice
         required: true
-        options:refere
+        options:
           - 2026-JAN-I
           - 2026-JAN-II
           - 2026-FEB-I
