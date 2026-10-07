@@ -823,7 +823,7 @@ jobs:
                   parent_children="$(yq -r "$expr | select(tag == \"!!map\") | keys | .[]" "$REF_FILE" 2>/dev/null)"
                   
                   if [[ -n "$parent_children" ]]; then
-                    echo "   Expected key(s) under '$parent_key': $(printf '%s' "$parent_children" | tr '\n' ',' | sed 's/,$//')"
+                    echo "   Expected key(s) under '$parent_key'"
 
                     input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
                     input_len=${#input_lower}
@@ -907,12 +907,20 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Stash any uncommitted changes to avoid conflicts during checkout
+          git stash push -m "temp-stash-before-checkout" || true
+
           git fetch origin "$branch_name" || true
 
           if git ls-remote --exit-code --heads origin "$branch_name" >/dev/null 2>&1; then
             git checkout -B "$branch_name" "origin/$branch_name"
           else
             git checkout -b "$branch_name"
+          fi
+
+          # Apply stashed changes if any
+          if git stash list | grep -q "temp-stash-before-checkout"; then
+            git stash pop || true
           fi
 
           git add .
