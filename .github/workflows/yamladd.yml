@@ -820,9 +820,11 @@ jobs:
                   echo "   Child key '$seg' not found under '${path_parts[$((p-1))]}'."
                   
                   parent_key="${path_parts[$((p-1))]}"
-                  parent_children="$(yq -r ".\"$parent_key\" | keys | .[]" "$REF_FILE" 2>/dev/null)"
+                  parent_children="$(yq -r "$expr | select(tag == \"!!map\") | keys | .[]" "$REF_FILE" 2>/dev/null)"
                   
                   if [[ -n "$parent_children" ]]; then
+                    echo "   Expected key(s) under '$parent_key': $(printf '%s' "$parent_children" | tr '\n' ',' | sed 's/,$//')"
+
                     input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
                     input_len=${#input_lower}
                     fuzzy_results=""
