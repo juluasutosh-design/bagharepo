@@ -328,6 +328,11 @@ jobs:
               local next_expr="$expr | select(type == \"!!map\" and has(\"$seg\")) | .\"$seg\""
 
               if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
+                if yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1; then
+                  echo "Type mismatch at $path_str: scalar value is expected at '${path_parts[$((p-1))]}'"
+                  return 1
+                fi
+
                 echo "Path not found in referenceChart.yml: $path_str"
                 echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'."
                 
@@ -803,6 +808,13 @@ jobs:
                 next_expr="$expr | select(type == \"!!map\" and has(\"$seg\")) | .\"$seg\""
 
                 if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
+                  if yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1; then
+                    echo ""
+                    echo "❌ Type mismatch: scalar value is expected at '${path_parts[$((p-1))]}'"
+                    found_error=1
+                    break
+                  fi
+
                   echo ""
                   echo "❌ Invalid path: $path_str"
                   echo "   Child key '$seg' not found under '${path_parts[$((p-1))]}'."
