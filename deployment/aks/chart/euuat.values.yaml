@@ -12,3 +12,5 @@ julu-deploy:
       registry: xyz.azurecr.io
     minReplicas: 2
     maxReplicas: 8
+  ports:
+    container: 8080
