@@ -9,6 +9,7 @@ julu-deploy:
     image:
       name: exp-ui
       tag: 2
+      tag: 3
       registry: xyz.azurecr.io
     minReplicas: 2
     maxReplicas: 8
