@@ -916,7 +916,7 @@ jobs:
 
           branch_name="${BRANCH_NAME}"
 
-          git status
+          git add deployment/aks/chart/*.values.yaml
 
           if git diff --cached --quiet; then
             echo "No changes to commit"
