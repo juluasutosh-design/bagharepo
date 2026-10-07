@@ -64,6 +64,32 @@ jobs:
         with:
           token: ${{ secrets.MYSECRET }}
 
+      - name: Fetch name and setup git
+        run: |
+          if [[ "${{ github.event.inputs.environment_files }}" == *uat* ]]; then
+            env_name="uat"
+          elif [[ "${{ github.event.inputs.environment_files }}" == *prod* ]]; then
+            env_name="prod"
+          else
+            echo "Invalid environment_files input: ${{ github.event.inputs.environment_files }}"
+            exit 1
+          fi
+
+          branch_name="feature/update-${env_name}-yaml-files-${{ github.event.inputs.Release }}"
+          echo "envs=$env_name" >> "$GITHUB_ENV"
+          echo "BRANCH_NAME=$branch_name" >> "$GITHUB_ENV"
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin "$branch_name" || true
+
+          if git ls-remote --exit-code --heads origin "$branch_name" >/dev/null 2>&1; then
+            git checkout -B "$branch_name" "origin/$branch_name"
+          else
+            git checkout -b "$branch_name"
+          fi
+
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -884,44 +910,11 @@ jobs:
           echo "Using OverrideYaml: $OVERRIDE_YAML"
           node app.js
 
-      - name: fetch name
-        run: |
-          if [[ "${{ github.event.inputs.environment_files }}" == *uat* ]]; then
-            env_name="uat"
-          elif [[ "${{ github.event.inputs.environment_files }}" == *prod* ]]; then
-            env_name="prod"
-          else
-            echo "Invalid environment_files input: ${{ github.event.inputs.environment_files }}"
-            exit 1
-          fi
-
-          branch_name="feature/update-${env_name}-yaml-files-${{ github.event.inputs.Release }}"
-          echo "envs=$env_name" >> "$GITHUB_ENV"
-          echo "BRANCH_NAME=$branch_name" >> "$GITHUB_ENV"
       - name: Commit and Push changes
         run: |
           set -euo pipefail
 
           branch_name="${BRANCH_NAME}"
-
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Stash any uncommitted changes to avoid conflicts during checkout
-          git stash push -m "temp-stash-before-checkout" || true
-
-          git fetch origin "$branch_name" || true
-
-          if git ls-remote --exit-code --heads origin "$branch_name" >/dev/null 2>&1; then
-            git checkout -B "$branch_name" "origin/$branch_name"
-          else
-            git checkout -b "$branch_name"
-          fi
-
-          # Apply stashed changes if any
-          if git stash list | grep -q "temp-stash-before-checkout"; then
-            git stash pop || true
-          fi
 
           git add .
 
