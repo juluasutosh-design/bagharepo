@@ -239,7 +239,7 @@ jobs:
               return 0
             fi
 
-            echo "Ambiguous shorthand key '$token'. Matching paths: $(printf '%s\n' "${matches[@]}" | tr '\n' ', ' | sed 's/, $//') (${#matches[@]} matches). Exiting." >&2
+            echo "Ambiguous shorthand key '$token'." >&2
             return 2
           }
 
