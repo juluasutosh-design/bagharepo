@@ -859,7 +859,7 @@ jobs:
                   if [[ -n "$parent_children" ]]; then
                     expected_children="$(printf '%s\n' "$parent_children" | tr '\n' ',' | sed 's/,$//')"
                     if [[ "$expected_children" == "enabled" ]]; then
-                      echo "   '$parent_key' is enabled"
+                      echo "   Expected child key is enabled under '$parent_key'"
                       echo "   Example path: ${path_parts[0]}~$parent_key~enabled"
                     else
                       echo "   Expected key(s) under '$parent_key': $expected_children"
