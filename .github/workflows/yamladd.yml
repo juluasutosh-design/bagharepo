@@ -223,7 +223,7 @@ jobs:
           is_exception_parent_key() {
             local key="$1"
             case "$key" in
-              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations|azureSpSecrets)
+              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations)
                 return 0
                 ;;
               *)
@@ -916,7 +916,7 @@ jobs:
 
           branch_name="${BRANCH_NAME}"
 
-          git add deployment/aks/chart/*.values.yaml
+          git add .
 
           if git diff --cached --quiet; then
             echo "No changes to commit"
