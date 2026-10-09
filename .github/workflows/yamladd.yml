@@ -113,11 +113,11 @@ jobs:
           set -euo pipefail
           trimmed="$(printf '%s' "$OVERRIDE_YAML" | sed -E 's/[[:space:]]+$//')"
           if [[ -z "$trimmed" ]]; then
-            echo "Error: OverrideYaml is empty."
+            echo "OverrideYaml is empty"
             exit 1
           fi
           if [[ "$trimmed" != *';' ]]; then
-            echo "Error: OverrideYaml must end with ';'."
+            echo "Invalid OverrideYaml: it must end with ';'"
             exit 1
           fi
 
@@ -130,7 +130,7 @@ jobs:
 
           REF_FILE="./referenceChart.yml"
           if [[ ! -f "$REF_FILE" ]]; then
-            echo "Error: referenceChart.yml was not found."
+            echo "referenceChart.yml not found"
             exit 1
           fi
 
@@ -265,7 +265,7 @@ jobs:
               return 0
             fi
 
-            echo "Error: shorthand key '$token' is ambiguous." >&2
+            echo "Ambiguous shorthand key '$token'." >&2
             return 2
           }
 
@@ -305,7 +305,7 @@ jobs:
             split_top_level "$path_str" "~" path_parts
 
             if [[ ${#path_parts[@]} -lt 1 ]]; then
-              echo "Error: invalid path '$path_str'."
+              echo "Invalid path: $path_str"
               return 1
             fi
 
@@ -343,8 +343,8 @@ jobs:
             local expr=".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\""
 
             if ! yq -e "$expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
-              echo "Error: path '$path_str' was not found in referenceChart.yml."
-              echo "Error: parent key '$first' was not found in referenceChart.yml."
+              echo "Path not found in referenceChart.yml: $path_str"
+              echo "Parent key '$first' not found in referenceChart.yml."
               return 1
             fi
 
@@ -356,13 +356,13 @@ jobs:
               if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
                 if yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1; then
                   expected_value="$(yq -r "$expr" "$REF_FILE" 2>/dev/null)"
-                  echo "Error: key '${seg}' is not valid under '${path_parts[$((p-1))]}'."
-                  echo "Hint: expected a scalar value under '${path_parts[$((p-1))]}'."
+                  echo "Key '${seg}' is not valid under '${path_parts[$((p-1))]}'"
+                  echo "Expected scalar value under '${path_parts[$((p-1))]}'"
                   return 1
                 fi
 
-                echo "Error: path '$path_str' was not found in referenceChart.yml."
-                echo "Error: child key '$seg' was not found under '${path_parts[$((p-1))]}'."
+                echo "Path not found in referenceChart.yml: $path_str"
+                echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'."
                 
                 # Fuzzy matching suggestions for child key
                 parent_key="${path_parts[$((p-1))]}"
@@ -398,7 +398,7 @@ jobs:
                   fi
                   
                   if [[ -n "$fuzzy_results" ]]; then
-                    echo "Hint: did you mean one of these? $fuzzy_results"
+                    echo "Did you mean one of these? $fuzzy_results"
                   fi
                 fi
                 return 1
@@ -409,7 +409,7 @@ jobs:
 
             if [[ "$strict_type" == "false" ]]; then
               yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1 || {
-                echo "Error: expected an object/map at '$path_str'."
+                echo "Type mismatch at $path_str: expected object/map in referenceChart.yml"
                 return 1
               }
               return 0
@@ -420,17 +420,17 @@ jobs:
 
             if [[ "$actual_kind" == "array" ]]; then
               yq -e "$expr | select(tag == \"!!seq\")" "$REF_FILE" >/dev/null 2>&1 || {
-                echo "Error: expected an array at '$path_str'."
+                echo "Type mismatch at $path_str: expected array in referenceChart.yml"
                 return 1
               }
             elif [[ "$actual_kind" == "object" ]]; then
               yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1 || {
-                echo "Error: expected an object at '$path_str'."
+                echo "Type mismatch at $path_str: expected object in referenceChart.yml"
                 return 1
               }
             else
               yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1 || {
-                echo "Error: expected a scalar value at '$path_str'."
+                echo "Type mismatch at $path_str: expected scalar in referenceChart.yml"
                 return 1
               }
             fi
@@ -440,7 +440,7 @@ jobs:
           split_top_level "$OVERRIDE_YAML" ";" segments
 
           if [[ ${#segments[@]} -eq 0 ]]; then
-            echo "Error: no override segments were found."
+            echo "No override segments found"
             exit 1
           fi
 
@@ -451,7 +451,7 @@ jobs:
             parts=()
             split_top_level "$segment" "~" parts
             if [[ ${#parts[@]} -lt 2 ]]; then
-              echo "Error: invalid override segment '$segment'."
+              echo "Invalid override segment: $segment"
               exit 1
             fi
 
@@ -535,7 +535,7 @@ jobs:
               split_top_level "$segment" "~" parts
 
               if [[ ${#parts[@]} -lt 2 ]]; then
-                echo "Error: invalid override segment '$segment'." >&2
+                echo "Invalid override segment: $segment" >&2
                 exit 1
               fi
 
@@ -556,7 +556,7 @@ jobs:
                 elif [[ $rc -eq 2 ]]; then
                   exit 1
                 elif [[ ${#path_parts[@]} -eq 1 ]]; then
-                  echo "Error: unable to resolve shorthand key '$(trim "${path_parts[0]}")'." >&2
+                  echo "Unable to resolve shorthand key '$(trim "${path_parts[0]}")'" >&2
                   exit 1
                 else
                   :
@@ -708,7 +708,7 @@ jobs:
               return 0
             fi
 
-            echo "Error: shorthand key '$token' is ambiguous. Matching paths: $(printf '%s\n' "${matches[@]}" | tr '\n' ', ' | sed 's/, $//') (${#matches[@]} matches)." >&2
+            echo "Ambiguous shorthand key '$token'. Matching paths: $(printf '%s\n' "${matches[@]}" | tr '\n' ', ' | sed 's/, $//') (${#matches[@]} matches). Exiting." >&2
             return 2
           }
 
@@ -787,8 +787,8 @@ jobs:
             # Check if parent key exists
             if ! yq -e ".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\"" "$REF_FILE" >/dev/null 2>&1; then
               echo ""
-              echo "Error: path '$path_str' was not found in referenceChart.yml."
-              echo "Error: parent key '$first' was not found in referenceChart.yml."
+              echo "❌ Invalid path: $path_str"
+              echo "   Parent key '$first' not found in referenceChart.yml"
               
               # Get fuzzy suggestions across the full tree
               all_keys="$(yq -r '.. | select(tag == "!!map") | keys | .[]' "$REF_FILE" 2>/dev/null | sort -u)"
@@ -823,7 +823,7 @@ jobs:
                 fi
                 
                 if [[ -n "$fuzzy_results" ]]; then
-                  echo "Hint: did you mean one of these? $fuzzy_results"
+                  echo "   💡 Did you mean? $fuzzy_results"
                 fi
               fi
             else
@@ -839,26 +839,31 @@ jobs:
                   if yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1; then
                     echo ""
                     expected_value="$(yq -r "$expr" "$REF_FILE" 2>/dev/null)"
-                    echo "Error: key '${seg}' is not valid under '${path_parts[$((p-1))]}'."
+                    echo "❌ Key '${seg}' is not valid under '${path_parts[$((p-1))]}'"
                     if [[ -n "$expected_value" && "$expected_value" != "null" ]]; then
-                      echo "Hint: expected example: ${path_parts[$((p-1))]}~${expected_value}"
+                      echo "   Expected example: ${path_parts[$((p-1))]}~${expected_value}"
                     else
-                      echo "Hint: expected a scalar value under '${path_parts[$((p-1))]}'."
+                      echo "   Expected scalar value under '${path_parts[$((p-1))]}'"
                     fi
                     found_error=1
                     break
                   fi
 
                   echo ""
-                  echo "Error: path '$path_str' was not found in referenceChart.yml."
-                  echo "Error: child key '$seg' was not found under '${path_parts[$((p-1))]}'."
+                  echo "❌ Invalid path: $path_str"
+                  echo "   Child key '$seg' not found under '${path_parts[$((p-1))]}'."
                   
                   parent_key="${path_parts[$((p-1))]}"
                   parent_children="$(yq -r "$expr | select(tag == \"!!map\") | keys | .[]" "$REF_FILE" 2>/dev/null)"
                   
                   if [[ -n "$parent_children" ]]; then
                     expected_children="$(printf '%s\n' "$parent_children" | tr '\n' ',' | sed 's/,$//')"
-                    echo "Hint: expected key(s) under '$parent_key': $expected_children"
+                    if [[ "$expected_children" == "enabled" ]]; then
+                      echo "   Expected child key is enabled under '$parent_key'"
+                      echo "   Example path: ${path_parts[0]}~$parent_key~enabled"
+                    else
+                      echo "   Expected key(s) under '$parent_key': $expected_children"
+                    fi
 
                     input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
                     input_len=${#input_lower}
@@ -889,7 +894,7 @@ jobs:
                     fi
                     
                     if [[ -n "$fuzzy_results" ]]; then
-                        echo "Hint: did you mean one of these? $fuzzy_results"
+                      echo "   💡 Did you mean? $fuzzy_results"
                     fi
                   fi
                   found_error=1
@@ -900,6 +905,7 @@ jobs:
               done
             fi
           done
+
           exit 1
       - name: Run the patching script
         env:
