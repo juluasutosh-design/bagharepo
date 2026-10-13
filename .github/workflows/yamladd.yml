@@ -55,20 +55,65 @@ on:
         required: true
         options:
           - "deploy"
+  workflow_call:
+    inputs:
+      OverrideYaml:
+        description: "Provide path-based override input, e.g. region~[europe]~dns~julu.com;"
+        required: true
+        type: string
+      Release:
+        description: "Select Release , Used to create branch with name and also used in PR title"
+        required: true
+        type: string
+      environment_files:
+        description: "Provide environment specific yaml file name, i.e default points to values.yaml file only"
+        required: true
+        default: "usuat"
+        type: string
+      config_file_Type:
+        description: "Provide the Type of yaml file to be updated i.e cname or deploy"
+        required: true
+        default: "deploy"
+        type: string
+    secrets:
+      MYSECRET:
+        required: true
 jobs:
   commit:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Resolve workflow source
+        id: resolve_source
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          repo="${WORKFLOW_REF%%/.github/workflows/*}"
+          ref="${WORKFLOW_REF##*@}"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout deploy repo
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.MYSECRET }}
+          path: deploy-repo
+
+      - name: Checkout workflow tools repo
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.MYSECRET }}
+          repository: ${{ steps.resolve_source.outputs.repo }}
+          ref: ${{ steps.resolve_source.outputs.ref }}
+          path: workflow-tools
 
       - name: Validate selected environment file exists
+        working-directory: deploy-repo
         shell: bash
         env:
-          ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
-          CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
+          ENVIRONMENT_FILES: ${{ inputs.environment_files }}
+          CONFIG_FILE_TYPE: ${{ inputs.config_file_Type }}
         run: |
           set -euo pipefail
 
@@ -95,17 +140,18 @@ jobs:
           done
 
       - name: Fetch name and setup git
+        working-directory: deploy-repo
         run: |
-          if [[ "${{ github.event.inputs.environment_files }}" == *uat* ]]; then
+          if [[ "${{ inputs.environment_files }}" == *uat* ]]; then
             env_name="uat"
-          elif [[ "${{ github.event.inputs.environment_files }}" == *prod* ]]; then
+          elif [[ "${{ inputs.environment_files }}" == *prod* ]]; then
             env_name="prod"
           else
             echo "Taking default env name as values.yaml"
             env_name="values"
           fi
 
-          branch_name="feature/update-${env_name}-yaml-files-${{ github.event.inputs.Release }}"
+          branch_name="feature/update-${env_name}-yaml-files-${{ inputs.Release }}"
           echo "envs=$env_name" >> "$GITHUB_ENV"
           echo "BRANCH_NAME=$branch_name" >> "$GITHUB_ENV"
 
@@ -126,7 +172,8 @@ jobs:
           node-version: "18"
 
       - name: Install dependencies
-        run: npm install yaml
+        working-directory: workflow-tools
+        run: npm install
 
       - name: Install yq
         run: |
@@ -137,7 +184,7 @@ jobs:
 
       - name: Validate OverrideYaml input separator
         env:
-          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+          OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
         shell: bash
         run: |
           set -euo pipefail
@@ -161,13 +208,14 @@ jobs:
 
       - name: Validate input against referenceChart using yq
         id: validate_input
+        working-directory: deploy-repo
         env:
-          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+          OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
         shell: bash
         run: |
           set -euo pipefail
 
-          REF_FILE="./referenceChart.yml"
+          REF_FILE="../workflow-tools/referenceChart.yml"
 
           split_top_level() {
             local text="$1"
@@ -631,11 +679,12 @@ jobs:
 
       - name: Fuzzy Match Suggestions
         if: ${{ failure() && steps.validate_input.outcome == 'failure' }}
+        working-directory: deploy-repo
         env:
-          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+          OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
         shell: bash
         run: |
-          REF_FILE="./referenceChart.yml"
+          REF_FILE="../workflow-tools/referenceChart.yml"
 
           split_top_level() {
             local text="$1"
@@ -945,11 +994,12 @@ jobs:
 
           exit 1
       - name: Run the patching script
+        working-directory: deploy-repo
         env:
-          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+          OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
           RESOLVED_OVERRIDE_YAML: ${{ env.RESOLVED_OVERRIDE_YAML }}
-          ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
-          CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
+          ENVIRONMENT_FILES: ${{ inputs.environment_files }}
+          CONFIG_FILE_TYPE: ${{ inputs.config_file_Type }}
         shell: bash
         run: |
           set -euo pipefail
@@ -959,9 +1009,10 @@ jobs:
           fi
 
           echo "Using OverrideYaml: $OVERRIDE_YAML"
-          node app.js
+          node ../workflow-tools/app.js
 
       - name: Commit and Push changes
+        working-directory: deploy-repo
         run: |
           set -euo pipefail
 
@@ -972,11 +1023,12 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore(ci):Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }} in release ${{ github.event.inputs.Release }}"
+            git commit -m "chore(ci):Updated yaml files ${{ inputs.environment_files }} with provided override by ${{ github.actor }} in release ${{ inputs.Release }}"
             git push --set-upstream origin "$branch_name"
           fi
       - name: Create PR
+        working-directory: deploy-repo
         env:
           GH_TOKEN: ${{ secrets.MYSECRET }}
         run: |
-          gh pr create --title "chore(ci): Update yaml files ${{ github.event.inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base "${GITHUB_REF_NAME}" --head "${BRANCH_NAME}" --reviewer ${{ github.actor}}
+          gh pr create --title "chore(ci): Update yaml files ${{ inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base "${GITHUB_REF_NAME}" --head "${BRANCH_NAME}" --reviewer ${{ github.actor}}
