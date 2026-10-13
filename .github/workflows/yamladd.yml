@@ -104,8 +104,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.MYSECRET }}
-          repository: ${{ steps.resolve_source.outputs.repo }}
-          ref: ${{ steps.resolve_source.outputs.ref }}
+          repository: juluasutosh-design/bagharepo
           path: workflow-tools
 
       - name: Validate selected environment file exists
