@@ -75,6 +75,10 @@ on:
         required: true
         default: "deploy"
         type: string
+      repo_name:
+        description: "caller repo name"
+        required: true
+        type: string
     secrets:
       MYSECRET:
         required: true
@@ -82,30 +86,20 @@ jobs:
   commit:
     runs-on: ubuntu-latest
     steps:
-      - name: Resolve workflow source
-        id: resolve_source
-        shell: bash
-        env:
-          WORKFLOW_REF: ${{ github.workflow_ref }}
-        run: |
-          set -euo pipefail
-          repo="${WORKFLOW_REF%%/.github/workflows/*}"
-          ref="${WORKFLOW_REF##*@}"
-          echo "repo=$repo" >> "$GITHUB_OUTPUT"
-          echo "ref=$ref" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout deploy repo
+      - name: Checkout ${{ inputs.repo_name }} repo
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.MYSECRET }}
-          path: deploy-repo
+          path: ${{ inputs.repo_name }}
 
-      - name: Checkout workflow tools repo
+      - name: Checkout disc-fe-discover-devops-utlilities repo
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.MYSECRET }}
           repository: juluasutosh-design/bagharepo
-          path: workflow-tools
+          path: disc-fe-discover-devops-utlilities
+          
 
       - name: Validate selected environment file exists
         working-directory: deploy-repo
