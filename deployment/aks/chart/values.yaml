@@ -20,4 +20,5 @@ julu-deploy:
         isTrue: ""
   region:
     dnsZone: ""
-    
+  global:
+    juluAppName: taliban
