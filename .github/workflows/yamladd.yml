@@ -129,10 +129,6 @@ jobs:
           set -euo pipefail
 
           REF_FILE="./referenceChart.yml"
-          if [[ ! -f "$REF_FILE" ]]; then
-            echo "referenceChart.yml not found"
-            exit 1
-          fi
 
           split_top_level() {
             local text="$1"
