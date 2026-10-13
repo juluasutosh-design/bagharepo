@@ -79,6 +79,10 @@ on:
         description: "caller repo name"
         required: true
         type: string
+      branch_name:
+        description: "caller branch name"
+        type: string
+        required: true
     secrets:
       MYSECRET:
         required: true
@@ -91,14 +95,16 @@ jobs:
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.MYSECRET }}
-          path: ${{ inputs.repo_name }}
+          ref: ${{ inputs.branch_name }}
+          path: deploy-repo
 
       - name: Checkout disc-fe-discover-devops-utlilities repo
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.MYSECRET }}
           repository: juluasutosh-design/bagharepo
-          path: disc-fe-discover-devops-utlilities
+          ref: release/oneClickYaml
+          path: workflow-tools
           
 
       - name: Validate selected environment file exists
