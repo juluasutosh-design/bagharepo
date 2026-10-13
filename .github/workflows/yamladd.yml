@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       OverrideYaml:
-        description: "Provide path-based override input, e.g. region~[europe]~dns~julu.com;"
+        description: "Provide path-based override input, e.g. env~uat;"
         type: string
         required: true
-        default: "region~[europe]~dns~julu.com"
+        default: "tag~2.25;"
       Release:
         description: "Select Release , Used to create branch with name and also used in PR title"
         type: choice
