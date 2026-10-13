@@ -40,20 +40,20 @@ on:
           - 2026-DEC-I
           - 2026-DEC-II
       environment_files:
-        description: "Provide environment specific yaml file name"
+        description: "Provide environment specific yaml file name, i.e default points to values.yaml file only"
         type: choice
         required: true
         options:
           - "usuat"
           - "euuat"
           - "usuat,euuat"
+          - "default"
         default: "usuat"
       config_file_Type:
         description: "Provide the Type of yaml file to be updated i.e cname or deploy"
         type: choice
         required: true
         options:
-          - "cname"
           - "deploy"
 jobs:
   commit:
@@ -64,6 +64,36 @@ jobs:
         with:
           token: ${{ secrets.MYSECRET }}
 
+      - name: Validate selected environment file exists
+        shell: bash
+        env:
+          ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
+          CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
+        run: |
+          set -euo pipefail
+
+          IFS=',' read -r -a selected_envs <<< "$ENVIRONMENT_FILES"
+
+          for env in "${selected_envs[@]}"; do
+            env="$(printf '%s' "$env" | xargs)"
+            [[ -z "$env" ]] && continue
+
+            if [[ "$CONFIG_FILE_TYPE" == "deploy" ]]; then
+              if [[ "$env" == "default" || "$env" == "values" ]]; then
+                config_path="./deployment/aks/chart/values.yaml"
+              else
+                config_path="./deployment/aks/chart/${env}.values.yaml"
+              fi
+            else
+              config_path="./deployment/aks/chart/cname/${env}.values.yaml"
+            fi
+
+            if [[ ! -f "$config_path" ]]; then
+              echo "Required environment file not found: $config_path"
+              exit 1
+            fi
+          done
+
       - name: Fetch name and setup git
         run: |
           if [[ "${{ github.event.inputs.environment_files }}" == *uat* ]]; then
@@ -71,8 +101,8 @@ jobs:
           elif [[ "${{ github.event.inputs.environment_files }}" == *prod* ]]; then
             env_name="prod"
           else
-            echo "Invalid environment_files input: ${{ github.event.inputs.environment_files }}"
-            exit 1
+            echo "Taking default env name as values.yaml"
+            env_name="values"
           fi
 
           branch_name="feature/update-${env_name}-yaml-files-${{ github.event.inputs.Release }}"
