@@ -262,6 +262,7 @@ jobs:
             fi
 
             echo "Ambiguous shorthand key '$token'." >&2
+            printf '%s\n' "${matches[@]}" >&2
             return 2
           }
 
@@ -367,34 +368,35 @@ jobs:
                 if [[ -n "$parent_children" ]]; then
                   input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
                   input_len=${#input_lower}
-                  fuzzy_results=""
+                  fuzzy_results=()
                   
                   for ((len=1; len<=input_len; len++)); do
                     substring="${input_lower:0:$len}"
-                    if [[ -n "$fuzzy_results" ]]; then
+                    if [[ ${#fuzzy_results[@]} -gt 0 ]]; then
                       break
                     fi
                     while IFS= read -r child; do
                       [[ -z "$child" ]] && continue
                       child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
                       if [[ "$child_lower" == "$substring"* ]]; then
-                        [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
+                        fuzzy_results+=("${path_parts[0]}~${parent_key}~${child}")
                       fi
                     done <<< "$parent_children"
                   done
                   
-                  if [[ -z "$fuzzy_results" ]]; then
+                  if [[ ${#fuzzy_results[@]} -eq 0 ]]; then
                     while IFS= read -r child; do
                       [[ -z "$child" ]] && continue
                       child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
                       if [[ "$child_lower" == *"$input_lower"* ]]; then
-                        [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
+                        fuzzy_results+=("${path_parts[0]}~${parent_key}~${child}")
                       fi
                     done <<< "$parent_children"
                   fi
                   
-                  if [[ -n "$fuzzy_results" ]]; then
-                    echo "Did you mean one of these? $fuzzy_results"
+                  if [[ ${#fuzzy_results[@]} -gt 0 ]]; then
+                    echo "Did you mean one of these?"
+                    printf '  %s\n' "${fuzzy_results[@]}"
                   fi
                 fi
                 return 1
