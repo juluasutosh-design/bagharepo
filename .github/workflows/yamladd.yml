@@ -1030,4 +1030,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MYSECRET }}
         run: |
-          gh pr create --title "chore(ci): Update yaml files ${{ inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base "${GITHUB_REF_NAME}" --head "${BRANCH_NAME}" --reviewer ${{ github.actor}}
+          gh pr create --title "chore(ci): Update yaml files ${{ inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base "${{ inputs.branch_name }}" --head "${BRANCH_NAME}" --reviewer ${{ github.actor}}
