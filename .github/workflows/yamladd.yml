@@ -261,8 +261,7 @@ jobs:
               return 0
             fi
 
-            echo "Ambiguous shorthand key '$token'." >&2
-            printf '%s\n' "${matches[@]}" >&2
+            echo "Ambiguous key found: '$token'." >&2
             return 2
           }
 
