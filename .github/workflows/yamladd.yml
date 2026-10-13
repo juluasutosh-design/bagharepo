@@ -150,6 +150,14 @@ jobs:
             echo "Invalid OverrideYaml: it must end with ';'"
             exit 1
           fi
+          if [[ "$trimmed" == ~* || "$trimmed" == *~ ]]; then
+            echo "Invalid OverrideYaml: path segments must not start or end with '~'"
+            exit 1
+          fi
+          if [[ "$trimmed" == *'~~'* ]]; then
+            echo "Invalid OverrideYaml: empty path segment found between '~' characters"
+            exit 1
+          fi
 
       - name: Validate input against referenceChart using yq
         id: validate_input
