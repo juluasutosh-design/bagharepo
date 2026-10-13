@@ -152,6 +152,7 @@ jobs:
           fi
 
       - name: Validate input against referenceChart using yq
+        id: validate_input
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
         shell: bash
@@ -621,7 +622,7 @@ jobs:
           echo "Resolved OverrideYaml: $RESOLVED_OVERRIDE_YAML"
 
       - name: Fuzzy Match Suggestions
-        if: failure()
+        if: ${{ failure() && steps.validate_input.outcome == 'failure' }}
         env:
           OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
         shell: bash
