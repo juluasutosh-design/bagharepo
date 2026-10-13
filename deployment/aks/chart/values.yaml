@@ -20,4 +20,6 @@ julu-deploy:
         isTrue: ""
   region:
     dnsZone: ""
-    
+  global:
+    image:
+      tag: 2.2.5
