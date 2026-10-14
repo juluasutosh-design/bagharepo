@@ -65,13 +65,29 @@ for segment in "${segments[@]}"; do
       first="$(trim "${path_parts[0]}")"
     else
       resolve_rc=$?
-      if [[ $resolve_rc -eq 2 ]]; then
-        exit 1
-      fi
     fi
   fi
 
   if [[ $resolve_rc -eq 2 ]]; then
+    ambiguous_paths=()
+    while IFS= read -r ambiguous_path; do
+      [[ -n "$ambiguous_path" ]] && ambiguous_paths+=("$ambiguous_path")
+    done < <(list_token_paths "$first")
+
+    echo ""
+    echo "   Matching paths:"
+    for ambiguous_path in "${ambiguous_paths[@]}"; do
+      remaining_parts=()
+      for ((idx=1; idx<${#path_parts[@]}; idx++)); do
+        remaining_parts+=("$(trim "${path_parts[$idx]}")")
+      done
+      full_path="$ambiguous_path"
+      for rp in "${remaining_parts[@]}"; do
+        full_path+="~$rp"
+      done
+      echo "     $full_path"
+    done
+    echo "   Total paths: ${#ambiguous_paths[@]}"
     exit 1
   fi
 
@@ -79,6 +95,7 @@ for segment in "${segments[@]}"; do
   split_top_level "$path_str" "~" path_parts
 
   first="$(trim "${path_parts[0]}")"
+  expr=""
 
   if ! yq -e ".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\"" "$REF_FILE" >/dev/null 2>&1; then
     echo ""
@@ -201,7 +218,7 @@ for segment in "${segments[@]}"; do
   fi
 
   value_kind="$(infer_value_kind "$value")"
-  if [[ "$value_kind" == "scalar" ]] && yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1; then
+  if [[ -n "$expr" && "$value_kind" == "scalar" ]] && yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1; then
     expected_keys="$(yq -r "$expr | keys | .[]" "$REF_FILE" 2>/dev/null | tr '\n' ',' | sed 's/,$//')"
     example_key="$(yq -r "$expr | select(tag == \"!!map\") | keys | .[0]" "$REF_FILE" 2>/dev/null || true)"
     echo ""
