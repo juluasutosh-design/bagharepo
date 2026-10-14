@@ -199,7 +199,7 @@ jobs:
           OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
           REF_FILE: ./referenceChart.yml
         shell: bash
-        run: bash ./scripts/fuzzy-match-suggestion.sh
+        run: bash ./scripts/fuzzy-match-suggestions.sh
       - name: Run the patching script
         env:
           OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
