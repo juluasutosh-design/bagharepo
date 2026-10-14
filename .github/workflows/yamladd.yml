@@ -190,7 +190,7 @@ jobs:
           OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
           REF_FILE: ./referenceChart.yml
         shell: bash
-        run: bash .validate-reference-chart.sh
+        run: bash ./scripts/validate-reference-chart.sh
 
       - name: Fuzzy Match Suggestions
         if: ${{ failure() && steps.validate_input.outcome == 'failure' }}
@@ -199,7 +199,7 @@ jobs:
           OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
           REF_FILE: ./referenceChart.yml
         shell: bash
-        run: bash .fuzzy-match-suggestions.sh
+        run: bash ./scripts/fuzzy-match-suggestions.sh
       - name: Run the patching script
         working-directory: deploy-repo
         env:
