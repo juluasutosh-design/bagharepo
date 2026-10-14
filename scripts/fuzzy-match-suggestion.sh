@@ -14,7 +14,7 @@ print_schema_help() {
 }
 
 echo "=== Fuzzy Matching Suggestions ==="
-
+print_schema_help
 segments=()
 split_top_level "$OVERRIDE_YAML" ";" segments
 
