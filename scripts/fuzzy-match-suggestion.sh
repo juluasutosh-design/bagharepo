@@ -137,6 +137,7 @@ for segment in "${segments[@]}"; do
           else
             echo "   Expected scalar value under '${path_parts[$((p-1))]}'"
           fi
+          echo "   Check the schema in repo 'disc-fe-discover-devops-utlilities/referenceChart.yml' or reach out to swatdevops."
           break
         fi
 
