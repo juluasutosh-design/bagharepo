@@ -82,34 +82,14 @@ jobs:
   commit:
     runs-on: azure-niq-1-core-eus2
     steps:
-      - name: Resolve workflow source
-        id: resolve_source
-        shell: bash
-        env:
-          WORKFLOW_REF: ${{ github.workflow_ref }}
-        run: |
-          set -euo pipefail
-          repo="${WORKFLOW_REF%%/.github/workflows/*}"
-          ref="${WORKFLOW_REF##*@}"
-          echo "repo=$repo" >> "$GITHUB_OUTPUT"
-          echo "ref=$ref" >> "$GITHUB_OUTPUT"
 
       - name: Checkout deploy repo
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.MYSECRET }}
-          path: deploy-repo
 
-      - name: Checkout workflow tools repo
-        uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.MYSECRET }}
-          repository: ${{ steps.resolve_source.outputs.repo }}
-          ref: ${{ steps.resolve_source.outputs.ref }}
-          path: workflow-tools
 
       - name: Validate selected environment file exists
-        working-directory: deploy-repo
         shell: bash
         env:
           ENVIRONMENT_FILES: ${{ inputs.environment_files }}
@@ -140,7 +120,6 @@ jobs:
           done
 
       - name: Fetch name and setup git
-        working-directory: deploy-repo
         run: |
           if [[ "${{ inputs.environment_files }}" == *uat* ]]; then
             env_name="uat"
@@ -172,7 +151,6 @@ jobs:
           node-version: "18"
 
       - name: Install dependencies
-        working-directory: workflow-tools
         run: npm install
 
       - name: Install yq
@@ -208,21 +186,20 @@ jobs:
 
       - name: Validate input against referenceChart using yq
         id: validate_input
-        working-directory: deploy-repo
         env:
           OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
-          REF_FILE: ../workflow-tools/referenceChart.yml
+          REF_FILE: ./referenceChart.yml
         shell: bash
-        run: bash ../workflow-tools/scripts/validate-reference-chart.sh
+        run: bash .validate-reference-chart.sh
 
       - name: Fuzzy Match Suggestions
         if: ${{ failure() && steps.validate_input.outcome == 'failure' }}
         working-directory: deploy-repo
         env:
           OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
-          REF_FILE: ../workflow-tools/referenceChart.yml
+          REF_FILE: ./referenceChart.yml
         shell: bash
-        run: bash ../workflow-tools/scripts/fuzzy-match-suggestions.sh
+        run: bash .fuzzy-match-suggestions.sh
       - name: Run the patching script
         working-directory: deploy-repo
         env:
