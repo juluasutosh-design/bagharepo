@@ -80,7 +80,7 @@ on:
         required: true
 jobs:
   commit:
-    runs-on: azure-niq-1-core-eus2
+    runs-on: ubuntu-latest
     steps:
 
       - name: Checkout deploy repo
