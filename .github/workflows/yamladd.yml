@@ -87,6 +87,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.MYSECRET }}
+          ref: main
 
 
       - name: Validate selected environment file exists
