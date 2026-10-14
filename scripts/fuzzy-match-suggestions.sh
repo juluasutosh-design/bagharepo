@@ -151,6 +151,7 @@ for segment in "${segments[@]}"; do
           if [[ "$expected_children" == "enabled" ]]; then
             echo "   Expected child key is enabled under '$parent_key'"
             echo "   Example path: ${path_parts[0]}~$parent_key~enabled"
+            exit 1
           else
             echo "   Expected key(s) under '$parent_key': $expected_children"
           fi
@@ -209,6 +210,9 @@ for segment in "${segments[@]}"; do
     fi
     exit 1
   fi
+
+  echo ""
+  break
 
 done
 
