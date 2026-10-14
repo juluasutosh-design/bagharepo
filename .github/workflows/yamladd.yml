@@ -55,20 +55,65 @@ on:
         required: true
         options:
           - "deploy"
+  workflow_call:
+    inputs:
+      OverrideYaml:
+        description: "Provide path-based override input, e.g. region~[europe]~dns~julu.com;"
+        required: true
+        type: string
+      Release:
+        description: "Select Release , Used to create branch with name and also used in PR title"
+        required: true
+        type: string
+      environment_files:
+        description: "Provide environment specific yaml file name, i.e default points to values.yaml file only"
+        required: true
+        default: "usuat"
+        type: string
+      config_file_Type:
+        description: "Provide the Type of yaml file to be updated i.e cname or deploy"
+        required: true
+        default: "deploy"
+        type: string
+    secrets:
+      MYSECRET:
+        required: true
 jobs:
   commit:
-    runs-on: ubuntu-latest
+    runs-on: azure-niq-1-core-eus2
     steps:
-      - name: Checkout
+      - name: Resolve workflow source
+        id: resolve_source
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          repo="${WORKFLOW_REF%%/.github/workflows/*}"
+          ref="${WORKFLOW_REF##*@}"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout deploy repo
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.MYSECRET }}
+          path: deploy-repo
+
+      - name: Checkout workflow tools repo
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.MYSECRET }}
+          repository: ${{ steps.resolve_source.outputs.repo }}
+          ref: ${{ steps.resolve_source.outputs.ref }}
+          path: workflow-tools
 
       - name: Validate selected environment file exists
+        working-directory: deploy-repo
         shell: bash
         env:
-          ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
-          CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
+          ENVIRONMENT_FILES: ${{ inputs.environment_files }}
+          CONFIG_FILE_TYPE: ${{ inputs.config_file_Type }}
         run: |
           set -euo pipefail
 
@@ -95,17 +140,18 @@ jobs:
           done
 
       - name: Fetch name and setup git
+        working-directory: deploy-repo
         run: |
-          if [[ "${{ github.event.inputs.environment_files }}" == *uat* ]]; then
+          if [[ "${{ inputs.environment_files }}" == *uat* ]]; then
             env_name="uat"
-          elif [[ "${{ github.event.inputs.environment_files }}" == *prod* ]]; then
+          elif [[ "${{ inputs.environment_files }}" == *prod* ]]; then
             env_name="prod"
           else
             echo "Taking default env name as values.yaml"
             env_name="values"
           fi
 
-          branch_name="feature/update-${env_name}-yaml-files-${{ github.event.inputs.Release }}"
+          branch_name="feature/update-${env_name}-yaml-files-${{ inputs.Release }}"
           echo "envs=$env_name" >> "$GITHUB_ENV"
           echo "BRANCH_NAME=$branch_name" >> "$GITHUB_ENV"
 
@@ -126,7 +172,8 @@ jobs:
           node-version: "18"
 
       - name: Install dependencies
-        run: npm install yaml
+        working-directory: workflow-tools
+        run: npm install
 
       - name: Install yq
         run: |
@@ -137,7 +184,7 @@ jobs:
 
       - name: Validate OverrideYaml input separator
         env:
-          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+          OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
         shell: bash
         run: |
           set -euo pipefail
@@ -161,795 +208,28 @@ jobs:
 
       - name: Validate input against referenceChart using yq
         id: validate_input
+        working-directory: deploy-repo
         env:
-          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+          OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
+          REF_FILE: ../workflow-tools/referenceChart.yml
         shell: bash
-        run: |
-          set -euo pipefail
-
-          REF_FILE="./referenceChart.yml"
-
-          split_top_level() {
-            local text="$1"
-            local delim="$2"
-            local -n out_ref=$3
-            out_ref=()
-
-            local square=0
-            local curly=0
-            local paren=0
-            local quote=""
-            local escaped=0
-            local current=""
-            local ch=""
-
-            for ((i=0; i<${#text}; i++)); do
-              ch="${text:$i:1}"
-
-              if [[ -n "$quote" ]]; then
-                current+="$ch"
-                if (( escaped == 1 )); then
-                  escaped=0
-                  continue
-                fi
-                if [[ "$ch" == "\\" ]]; then
-                  escaped=1
-                  continue
-                fi
-                if [[ "$ch" == "$quote" ]]; then
-                  quote=""
-                fi
-                continue
-              fi
-
-              if [[ "$ch" == '"' || "$ch" == "'" ]]; then
-                quote="$ch"
-                current+="$ch"
-                continue
-              fi
-
-              if [[ "$ch" == "[" ]]; then
-                ((square+=1))
-              elif [[ "$ch" == "]" ]]; then
-                ((square>0)) && ((square-=1)) || true
-              elif [[ "$ch" == "{" ]]; then
-                ((curly+=1))
-              elif [[ "$ch" == "}" ]]; then
-                ((curly>0)) && ((curly-=1)) || true
-              elif [[ "$ch" == "(" ]]; then
-                ((paren+=1))
-              elif [[ "$ch" == ")" ]]; then
-                ((paren>0)) && ((paren-=1)) || true
-              fi
-
-              if [[ "$ch" == "$delim" && $square -eq 0 && $curly -eq 0 && $paren -eq 0 ]]; then
-                out_ref+=("$current")
-                current=""
-                continue
-              fi
-
-              current+="$ch"
-            done
-
-            if [[ -n "${current// }" ]]; then
-              out_ref+=("$current")
-            fi
-          }
-
-          trim() {
-            local var="$1"
-            var="${var#"${var%%[![:space:]]*}"}"
-            var="${var%"${var##*[![:space:]]}"}"
-            printf '%s' "$var"
-          }
-
-          infer_value_kind() {
-            local value
-            value="$(trim "$1")"
-            if [[ "$value" =~ ^\[.*\]$ ]]; then
-              echo "array"
-            elif [[ "$value" =~ ^\{.*\}$ ]]; then
-              echo "object"
-            else
-              echo "scalar"
-            fi
-          }
-
-          is_exception_parent_key() {
-            local key="$1"
-            case "$key" in
-              envSecrets|envConfig|fileConfigMap|customAppLabels|customAppAnnotations)
-                return 0
-                ;;
-              *)
-                return 1
-                ;;
-            esac
-          }
-
-          resolve_single_token_path() {
-            local token="$1"
-            local matches=()
-
-            # Get all top-level keys (node names)
-            local top_keys
-            top_keys=$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null)
-
-            # For each top-level key, search for the token within that subtree
-            while IFS= read -r top_key; do
-              [[ -z "$top_key" ]] && continue
-
-              # Search within this top-level key's subtree for the token
-              # Note: path returns absolute path including top_key, so we skip first element with .[1:]
-              local results
-              results=$(yq -r ".\"$top_key\" | .. | select(type == \"!!map\" and has(\"$token\")) | path | .[1:] + [\"$token\"] | map(tostring) | join(\"~\")" "$REF_FILE" 2>/dev/null)
-
-              # For each path found, prepend the top-level key
-              while IFS= read -r path; do
-                [[ -z "$path" ]] && continue
-                matches+=("${top_key}~${path}")
-              done <<< "$results"
-            done <<< "$top_keys"
-
-            if [[ ${#matches[@]} -eq 0 ]]; then
-              return 1
-            fi
-
-            if [[ ${#matches[@]} -eq 1 ]]; then
-              printf '%s\n' "${matches[0]}"
-              return 0
-            fi
-
-            echo "Ambiguous key found: '$token'." >&2
-            return 2
-          }
-
-          get_exception_parent_path() {
-            local path_str="$1"
-            local path_parts=()
-            split_top_level "$path_str" "~" path_parts
-
-            local total=${#path_parts[@]}
-            local acc=""
-
-            for ((i=0; i<total; i++)); do
-              local seg
-              seg="$(trim "${path_parts[$i]}")"
-
-              if [[ -z "$acc" ]]; then
-                acc="$seg"
-              else
-                acc+="~$seg"
-              fi
-
-              if is_exception_parent_key "$seg" && (( i < total - 1 )); then
-                printf '%s' "$acc"
-                return 0
-              fi
-            done
-
-            return 1
-          }
-
-          validate_path_and_type() {
-            local path_str="$1"
-            local value_str="$2"
-            local strict_type="${3:-true}"
-
-            local path_parts=()
-            split_top_level "$path_str" "~" path_parts
-
-            if [[ ${#path_parts[@]} -lt 1 ]]; then
-              echo "Invalid path: $path_str"
-              return 1
-            fi
-
-            local first
-            first="$(trim "${path_parts[0]}")"
-
-            local resolved_path
-            if resolved_path="$(resolve_single_token_path "$first")"; then
-              local rebuilt_path_parts=()
-              split_top_level "$resolved_path" "~" rebuilt_path_parts
-              for ((idx=1; idx<${#path_parts[@]}; idx++)); do
-                rebuilt_path_parts+=("${path_parts[$idx]}")
-              done
-
-              path_str=""
-              for part in "${rebuilt_path_parts[@]}"; do
-                part="$(trim "$part")"
-                [[ -z "$part" ]] && continue
-                if [[ -z "$path_str" ]]; then
-                  path_str="$part"
-                else
-                  path_str+="~$part"
-                fi
-              done
-
-              split_top_level "$path_str" "~" path_parts
-              first="$(trim "${path_parts[0]}")"
-            else
-              local rc=$?
-              if [[ $rc -eq 2 ]]; then
-                return 1
-              fi
-            fi
-
-            local expr=".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\""
-
-            if ! yq -e "$expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
-              echo "Path not found in referenceChart.yml: $path_str"
-              echo "Parent key '$first' not found in referenceChart.yml."
-              return 1
-            fi
-
-            for ((p=1; p<${#path_parts[@]}; p++)); do
-              local seg
-              seg="$(trim "${path_parts[$p]}")"
-              local next_expr="$expr | select(type == \"!!map\" and has(\"$seg\")) | .\"$seg\""
-
-              if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
-                if yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1; then
-                  expected_value="$(yq -r "$expr" "$REF_FILE" 2>/dev/null)"
-                  echo "Key '${seg}' is not valid under '${path_parts[$((p-1))]}'"
-                  echo "Expected scalar value under '${path_parts[$((p-1))]}'"
-                  return 1
-                fi
-
-                echo "Path not found in referenceChart.yml: $path_str"
-                echo "Child key '$seg' not found under '${path_parts[$((p-1))]}'."
-                
-                # Fuzzy matching suggestions for child key
-                parent_key="${path_parts[$((p-1))]}"
-                parent_children="$(yq -r ".\"$parent_key\" | keys | .[]" "$REF_FILE" 2>/dev/null)"
-                
-                if [[ -n "$parent_children" ]]; then
-                  input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
-                  input_len=${#input_lower}
-                  fuzzy_results=()
-                  
-                  for ((len=1; len<=input_len; len++)); do
-                    substring="${input_lower:0:$len}"
-                    if [[ ${#fuzzy_results[@]} -gt 0 ]]; then
-                      break
-                    fi
-                    while IFS= read -r child; do
-                      [[ -z "$child" ]] && continue
-                      child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
-                      if [[ "$child_lower" == "$substring"* ]]; then
-                        fuzzy_results+=("${path_parts[0]}~${parent_key}~${child}")
-                      fi
-                    done <<< "$parent_children"
-                  done
-                  
-                  if [[ ${#fuzzy_results[@]} -eq 0 ]]; then
-                    while IFS= read -r child; do
-                      [[ -z "$child" ]] && continue
-                      child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
-                      if [[ "$child_lower" == *"$input_lower"* ]]; then
-                        fuzzy_results+=("${path_parts[0]}~${parent_key}~${child}")
-                      fi
-                    done <<< "$parent_children"
-                  fi
-                  
-                  if [[ ${#fuzzy_results[@]} -gt 0 ]]; then
-                    echo "Did you mean one of these?"
-                    printf '  %s\n' "${fuzzy_results[@]}"
-                  fi
-                fi
-                return 1
-              fi
-
-              expr="$next_expr"
-            done
-
-            if [[ "$strict_type" == "false" ]]; then
-              yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1 || {
-                echo "Type mismatch at $path_str: expected object/map in referenceChart.yml"
-                return 1
-              }
-              return 0
-            fi
-
-            local actual_kind
-            actual_kind="$(infer_value_kind "$value_str")"
-
-            if [[ "$actual_kind" == "array" ]]; then
-              yq -e "$expr | select(tag == \"!!seq\")" "$REF_FILE" >/dev/null 2>&1 || {
-                echo "Type mismatch at $path_str: expected array in referenceChart.yml"
-                return 1
-              }
-            elif [[ "$actual_kind" == "object" ]]; then
-              yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1 || {
-                echo "Type mismatch at $path_str: expected object in referenceChart.yml"
-                return 1
-              }
-            else
-              yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1 || {
-                echo "Type mismatch at $path_str: expected scalar in referenceChart.yml"
-                return 1
-              }
-            fi
-          }
-
-          segments=()
-          split_top_level "$OVERRIDE_YAML" ";" segments
-
-          if [[ ${#segments[@]} -eq 0 ]]; then
-            echo "No override segments found"
-            exit 1
-          fi
-
-          for segment in "${segments[@]}"; do
-            segment="$(trim "$segment")"
-            [[ -z "$segment" ]] && continue
-
-            parts=()
-            split_top_level "$segment" "~" parts
-            if [[ ${#parts[@]} -lt 2 ]]; then
-              echo "Invalid override segment: $segment"
-              exit 1
-            fi
-
-            value="$(trim "${parts[${#parts[@]}-1]}")"
-            unset 'parts[${#parts[@]}-1]'
-
-            path=""
-            for part in "${parts[@]}"; do
-              part="$(trim "$part")"
-              if [[ -z "$path" ]]; then
-                path="$part"
-              else
-                path+="~$part"
-              fi
-            done
-
-            # Expand [a,b] path segments if provided.
-            if [[ "$path" =~ \[.*\] ]]; then
-              expanded=()
-              split_top_level "$path" "~" path_tokens
-              expand_list=("")
-              for token in "${path_tokens[@]}"; do
-                token="$(trim "$token")"
-                if [[ "$token" =~ ^\[.*\]$ ]]; then
-                  inner="${token:1:${#token}-2}"
-                  split_top_level "$inner" "," inner_items
-                  next_expand=()
-                  for prefix in "${expand_list[@]}"; do
-                    for item in "${inner_items[@]}"; do
-                      item="$(trim "$item")"
-                      if [[ -z "$prefix" ]]; then
-                        next_expand+=("$item")
-                      else
-                        next_expand+=("$prefix~$item")
-                      fi
-                    done
-                  done
-                  expand_list=("${next_expand[@]}")
-                else
-                  for i in "${!expand_list[@]}"; do
-                    if [[ -z "${expand_list[$i]}" ]]; then
-                      expand_list[$i]="$token"
-                    else
-                      expand_list[$i]+="~$token"
-                    fi
-                  done
-                fi
-              done
-              expanded=("${expand_list[@]}")
-              for exp_path in "${expanded[@]}"; do
-                if parent_path="$(get_exception_parent_path "$exp_path")"; then
-                  validate_path_and_type "$parent_path" "{}" "false"
-                else
-                  validate_path_and_type "$exp_path" "$value"
-                fi
-              done
-            else
-              if parent_path="$(get_exception_parent_path "$path")"; then
-                validate_path_and_type "$parent_path" "{}" "false"
-              else
-                validate_path_and_type "$path" "$value"
-              fi
-            fi
-          done
-
-          echo "yq validation passed for OverrideYaml"
-
-          normalize_override_yaml() {
-            local raw="${1:-}"
-            [[ -z "$raw" ]] && { echo ""; return 0; }
-
-            local segments=()
-            split_top_level "$raw" ";" segments
-
-            local normalized=()
-            for segment in "${segments[@]}"; do
-              segment="$(trim "$segment")"
-              [[ -z "$segment" ]] && continue
-
-              local parts=()
-              split_top_level "$segment" "~" parts
-
-              if [[ ${#parts[@]} -lt 2 ]]; then
-                echo "Invalid override segment: $segment" >&2
-                exit 1
-              fi
-
-              local value="${parts[${#parts[@]}-1]}"
-              local path_parts=("${parts[@]:0:${#parts[@]}-1}")
-
-              if [[ ${#path_parts[@]} -ge 1 ]]; then
-                local resolved
-                resolved="$(resolve_single_token_path "$(trim "${path_parts[0]}")")"
-                local rc=$?
-                if [[ $rc -eq 0 ]]; then
-                  local rebuilt_path_parts=()
-                  split_top_level "$resolved" "~" rebuilt_path_parts
-                  for ((idx=1; idx<${#path_parts[@]}; idx++)); do
-                    rebuilt_path_parts+=("${path_parts[$idx]}")
-                  done
-                  path_parts=("${rebuilt_path_parts[@]}")
-                elif [[ $rc -eq 2 ]]; then
-                  exit 1
-                elif [[ ${#path_parts[@]} -eq 1 ]]; then
-                  echo "Unable to resolve shorthand key '$(trim "${path_parts[0]}")'" >&2
-                  exit 1
-                else
-                  :
-                fi
-              fi
-
-              local joined=""
-              for part in "${path_parts[@]}"; do
-                part="$(trim "$part")"
-                [[ -z "$part" ]] && continue
-                if [[ -z "$joined" ]]; then
-                  joined="$part"
-                else
-                  joined+="~$part"
-                fi
-              done
-
-              normalized+=("${joined}~${value}")
-            done
-
-            local output=""
-            for item in "${normalized[@]}"; do
-              if [[ -z "$output" ]]; then
-                output="$item"
-              else
-                output+=";$item"
-              fi
-            done
-
-            printf '%s' "$output"
-          }
-
-          RESOLVED_OVERRIDE_YAML="$(normalize_override_yaml "$OVERRIDE_YAML")"
-          echo "RESOLVED_OVERRIDE_YAML=$RESOLVED_OVERRIDE_YAML" >> "$GITHUB_ENV"
-          echo "Resolved OverrideYaml: $RESOLVED_OVERRIDE_YAML"
+        run: bash ../workflow-tools/scripts/validate-reference-chart.sh
 
       - name: Fuzzy Match Suggestions
         if: ${{ failure() && steps.validate_input.outcome == 'failure' }}
+        working-directory: deploy-repo
         env:
-          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+          OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
+          REF_FILE: ../workflow-tools/referenceChart.yml
         shell: bash
-        run: |
-          REF_FILE="./referenceChart.yml"
-
-          split_top_level() {
-            local text="$1"
-            local delim="$2"
-            local -n out_ref=$3
-            out_ref=()
-
-            local square=0
-            local curly=0
-            local paren=0
-            local quote=""
-            local escaped=0
-            local current=""
-            local ch=""
-
-            for ((i=0; i<${#text}; i++)); do
-              ch="${text:$i:1}"
-
-              if [[ -n "$quote" ]]; then
-                current+="$ch"
-                if (( escaped == 1 )); then
-                  escaped=0
-                  continue
-                fi
-                if [[ "$ch" == "\\" ]]; then
-                  escaped=1
-                  continue
-                fi
-                if [[ "$ch" == "$quote" ]]; then
-                  quote=""
-                fi
-                continue
-              fi
-
-              if [[ "$ch" == '"' || "$ch" == "'" ]]; then
-                quote="$ch"
-                current+="$ch"
-                continue
-              fi
-
-              if [[ "$ch" == "[" ]]; then
-                ((square+=1))
-              elif [[ "$ch" == "]" ]]; then
-                ((square>0)) && ((square-=1)) || true
-              elif [[ "$ch" == "{" ]]; then
-                ((curly+=1))
-              elif [[ "$ch" == "}" ]]; then
-                ((curly>0)) && ((curly-=1)) || true
-              elif [[ "$ch" == "(" ]]; then
-                ((paren+=1))
-              elif [[ "$ch" == ")" ]]; then
-                ((paren>0)) && ((paren-=1)) || true
-              fi
-
-              if [[ "$ch" == "$delim" && $square -eq 0 && $curly -eq 0 && $paren -eq 0 ]]; then
-                out_ref+=("$current")
-                current=""
-                continue
-              fi
-
-              current+="$ch"
-            done
-
-            if [[ -n "${current// }" ]]; then
-              out_ref+=("$current")
-            fi
-          }
-
-          trim() {
-            local var="$1"
-            var="${var#"${var%%[![:space:]]*}"}"
-            var="${var%"${var##*[![:space:]]}"}"
-            printf '%s' "$var"
-          }
-
-          resolve_single_token_path() {
-            local token="$1"
-            local matches=()
-
-            # Get all top-level keys (node names)
-            local top_keys
-            top_keys=$(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null)
-
-            # For each top-level key, search for the token within that subtree
-            while IFS= read -r top_key; do
-              [[ -z "$top_key" ]] && continue
-
-              # Search within this top-level key's subtree for the token
-              # Note: path returns absolute path including top_key, so we skip first element with .[1:]
-              local results
-              results=$(yq -r ".\"$top_key\" | .. | select(type == \"!!map\" and has(\"$token\")) | path | .[1:] + [\"$token\"] | map(tostring) | join(\"~\")" "$REF_FILE" 2>/dev/null)
-
-              # For each path found, prepend the top-level key
-              while IFS= read -r path; do
-                [[ -z "$path" ]] && continue
-                matches+=("${top_key}~${path}")
-              done <<< "$results"
-            done <<< "$top_keys"
-
-            if [[ ${#matches[@]} -eq 0 ]]; then
-              return 1
-            fi
-
-            if [[ ${#matches[@]} -eq 1 ]]; then
-              printf '%s\n' "${matches[0]}"
-              return 0
-            fi
-
-            echo "Ambiguous shorthand key '$token'." >&2
-            printf '%s\n' "${matches[@]}" >&2
-            return 2
-          }
-
-          echo "=== Fuzzy Matching Suggestions ==="
-
-          segments=()
-          split_top_level "$OVERRIDE_YAML" ";" segments
-
-          for segment in "${segments[@]}"; do
-            segment="$(trim "$segment")"
-            [[ -z "$segment" ]] && continue
-
-            parts=()
-            split_top_level "$segment" "~" parts
-            
-            value="$(trim "${parts[${#parts[@]}-1]}")"
-            unset 'parts[${#parts[@]}-1]'
-
-            path_str=""
-            for part in "${parts[@]}"; do
-              part="$(trim "$part")"
-              if [[ -z "$path_str" ]]; then
-                path_str="$part"
-              else
-                path_str+="~$part"
-              fi
-            done
-
-            resolved_first=""
-            resolve_rc=0
-
-            path_parts=()
-            split_top_level "$path_str" "~" path_parts
-            first="$(trim "${path_parts[0]}")"
-
-            if [[ "$path_str" != *"["* ]]; then
-              if resolved_first="$(resolve_single_token_path "$first")"; then
-                rebuilt_path_parts=()
-                split_top_level "$resolved_first" "~" rebuilt_path_parts
-                for ((idx=1; idx<${#path_parts[@]}; idx++)); do
-                  rebuilt_path_parts+=("${path_parts[$idx]}")
-                done
-
-                path_str=""
-                for part in "${rebuilt_path_parts[@]}"; do
-                  part="$(trim "$part")"
-                  [[ -z "$part" ]] && continue
-                  if [[ -z "$path_str" ]]; then
-                    path_str="$part"
-                  else
-                    path_str+="~$part"
-                  fi
-                done
-
-                path_parts=()
-                split_top_level "$path_str" "~" path_parts
-                first="$(trim "${path_parts[0]}")"
-              else
-                resolve_rc=$?
-                if [[ $resolve_rc -eq 2 ]]; then
-                  exit 1
-                fi
-              fi
-            fi
-
-            if [[ $resolve_rc -eq 2 ]]; then
-              exit 1
-            fi
-
-            # Test each path to find which one fails
-            path_parts=()
-            split_top_level "$path_str" "~" path_parts
-            
-            first="$(trim "${path_parts[0]}")"
-            
-            # Check if parent key exists
-            if ! yq -e ".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\"" "$REF_FILE" >/dev/null 2>&1; then
-              echo ""
-              echo "❌ Invalid path: $path_str"
-              echo "   Parent key '$first' not found in referenceChart.yml"
-              
-              # Get fuzzy suggestions across the full tree
-              all_keys="$(yq -r '.. | select(tag == "!!map") | keys | .[]' "$REF_FILE" 2>/dev/null | sort -u)"
-              
-              if [[ -n "$all_keys" ]]; then
-                input_lower="$(echo "$first" | tr '[:upper:]' '[:lower:]')"
-                input_len=${#input_lower}
-                fuzzy_results=""
-                
-                for ((len=1; len<=input_len; len++)); do
-                  substring="${input_lower:0:$len}"
-                  if [[ -n "$fuzzy_results" ]]; then
-                    break
-                  fi
-                  while IFS= read -r key; do
-                    [[ -z "$key" ]] && continue
-                    key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
-                    if [[ "$key_lower" == "$substring"* ]]; then
-                      [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$key" || fuzzy_results="$key"
-                    fi
-                  done <<< "$all_keys"
-                done
-                
-                if [[ -z "$fuzzy_results" ]]; then
-                  while IFS= read -r key; do
-                    [[ -z "$key" ]] && continue
-                    key_lower="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
-                    if [[ "$key_lower" == *"$input_lower"* ]]; then
-                      [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$key" || fuzzy_results="$key"
-                    fi
-                  done <<< "$all_keys"
-                fi
-                
-                if [[ -n "$fuzzy_results" ]]; then
-                  echo "   💡 Did you mean? $fuzzy_results"
-                fi
-              fi
-            else
-              # Check child keys
-              expr=".. | select(type == \"!!map\" and has(\"$first\")) | .\"$first\""
-              found_error=0
-              
-              for ((p=1; p<${#path_parts[@]}; p++)); do
-                seg="$(trim "${path_parts[$p]}")"
-                next_expr="$expr | select(type == \"!!map\" and has(\"$seg\")) | .\"$seg\""
-
-                if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
-                  if yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1; then
-                    echo ""
-                    expected_value="$(yq -r "$expr" "$REF_FILE" 2>/dev/null)"
-                    echo "❌ Key '${seg}' is not valid under '${path_parts[$((p-1))]}'"
-                    if [[ -n "$expected_value" && "$expected_value" != "null" ]]; then
-                      echo "   Expected example: ${path_parts[$((p-1))]}~${expected_value}"
-                    else
-                      echo "   Expected scalar value under '${path_parts[$((p-1))]}'"
-                    fi
-                    found_error=1
-                    break
-                  fi
-
-                  echo ""
-                  echo "❌ Invalid path: $path_str"
-                  echo "   Child key '$seg' not found under '${path_parts[$((p-1))]}'."
-                  
-                  parent_key="${path_parts[$((p-1))]}"
-                  parent_children="$(yq -r "$expr | select(tag == \"!!map\") | keys | .[]" "$REF_FILE" 2>/dev/null)"
-                  
-                  if [[ -n "$parent_children" ]]; then
-                    expected_children="$(printf '%s\n' "$parent_children" | tr '\n' ',' | sed 's/,$//')"
-                    if [[ "$expected_children" == "enabled" ]]; then
-                      echo "   Expected child key is enabled under '$parent_key'"
-                      echo "   Example path: ${path_parts[0]}~$parent_key~enabled"
-                    else
-                      echo "   Expected key(s) under '$parent_key': $expected_children"
-                    fi
-
-                    input_lower="$(echo "$seg" | tr '[:upper:]' '[:lower:]')"
-                    input_len=${#input_lower}
-                    fuzzy_results=""
-                    
-                    for ((len=1; len<=input_len; len++)); do
-                      substring="${input_lower:0:$len}"
-                      if [[ -n "$fuzzy_results" ]]; then
-                        break
-                      fi
-                      while IFS= read -r child; do
-                        [[ -z "$child" ]] && continue
-                        child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
-                        if [[ "$child_lower" == "$substring"* ]]; then
-                          [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
-                        fi
-                      done <<< "$parent_children"
-                    done
-                    
-                    if [[ -z "$fuzzy_results" ]]; then
-                      while IFS= read -r child; do
-                        [[ -z "$child" ]] && continue
-                        child_lower="$(echo "$child" | tr '[:upper:]' '[:lower:]')"
-                        if [[ "$child_lower" == *"$input_lower"* ]]; then
-                          [[ -n "$fuzzy_results" ]] && fuzzy_results+=",$child" || fuzzy_results="$child"
-                        fi
-                      done <<< "$parent_children"
-                    fi
-                    
-                    if [[ -n "$fuzzy_results" ]]; then
-                      echo "   💡 Did you mean? $fuzzy_results"
-                    fi
-                  fi
-                  found_error=1
-                  break
-                fi
-                
-                expr="$next_expr"
-              done
-            fi
-          done
-
-          exit 1
+        run: bash ../workflow-tools/scripts/fuzzy-match-suggestions.sh
       - name: Run the patching script
+        working-directory: deploy-repo
         env:
-          OVERRIDE_YAML: ${{ github.event.inputs.OverrideYaml }}
+          OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
           RESOLVED_OVERRIDE_YAML: ${{ env.RESOLVED_OVERRIDE_YAML }}
-          ENVIRONMENT_FILES: ${{ github.event.inputs.environment_files }}
-          CONFIG_FILE_TYPE: ${{ github.event.inputs.config_file_Type }}
+          ENVIRONMENT_FILES: ${{ inputs.environment_files }}
+          CONFIG_FILE_TYPE: ${{ inputs.config_file_Type }}
         shell: bash
         run: |
           set -euo pipefail
@@ -959,9 +239,10 @@ jobs:
           fi
 
           echo "Using OverrideYaml: $OVERRIDE_YAML"
-          node app.js
+          node ../workflow-tools/app.js
 
       - name: Commit and Push changes
+        working-directory: deploy-repo
         run: |
           set -euo pipefail
 
@@ -972,11 +253,12 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore(ci):Updated yaml files ${{ github.event.inputs.environment_files }} with provided override by ${{ github.actor }} in release ${{ github.event.inputs.Release }}"
+            git commit -m "chore(ci):Updated yaml files ${{ inputs.environment_files }} with provided override by ${{ github.actor }} in release ${{ inputs.Release }}"
             git push --set-upstream origin "$branch_name"
           fi
       - name: Create PR
+        working-directory: deploy-repo
         env:
           GH_TOKEN: ${{ secrets.MYSECRET }}
         run: |
-          gh pr create --title "chore(ci): Update yaml files ${{ github.event.inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base "${GITHUB_REF_NAME}" --head "${BRANCH_NAME}" --reviewer ${{ github.actor}}
+          gh pr create --title "chore(ci): Update yaml files ${{ inputs.environment_files }}" --body "This PR updates the yaml files with the provided override values by ${{ github.actor }}." --base "${GITHUB_REF_NAME}" --head "${BRANCH_NAME}" --reviewer ${{ github.actor}}
