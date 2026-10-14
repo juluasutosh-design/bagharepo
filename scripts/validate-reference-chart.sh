@@ -113,7 +113,6 @@ validate_path_and_type() {
         if [[ ${#fuzzy_results[@]} -gt 0 ]]; then
           echo "Did you mean one of these?"
           printf '  %s\n' "${fuzzy_results[@]}"
-          print_schema_help
         fi
       fi
       return 1
@@ -146,23 +145,19 @@ validate_path_and_type() {
   if [[ "$actual_kind" == "array" ]]; then
     if [[ "$expected_kind" != "array" ]]; then
       echo "Type mismatch at $path_str: expected $expected_display in referenceChart.yml"
-      print_schema_help
       return 1
     fi
   elif [[ "$actual_kind" == "object" ]]; then
     if [[ "$expected_kind" != "object" ]]; then
       echo "Type mismatch at $path_str: expected $expected_display in referenceChart.yml"
-      print_schema_help
       return 1
     fi
   else
     if [[ "$expected_kind" == "object" ]]; then
       echo "Type mismatch at $path_str: expected object/map in referenceChart.yml"
-      print_schema_help
       return 1
     elif [[ "$expected_kind" == "array" ]]; then
       echo "Type mismatch at $path_str: expected array in referenceChart.yml"
-      print_schema_help
       return 1
     fi
   fi
