@@ -130,13 +130,12 @@ for segment in "${segments[@]}"; do
       if ! yq -e "$next_expr | select(. != null)" "$REF_FILE" >/dev/null 2>&1; then
         if yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1; then
           echo ""
-          expected_value="$(yq -r "$expr" "$REF_FILE" 2>/dev/null)"
-          echo "❌ Key '${seg}' is not valid under '${path_parts[$((p-1))]}'"
-          if [[ -n "$expected_value" && "$expected_value" != "null" ]]; then
-            echo "   Expected example: ${path_parts[$((p-1))]}~${expected_value}"
-          else
-            echo "   Expected scalar value under '${path_parts[$((p-1))]}'"
+          expected_path="${path_str}"
+          expected_keys="$(yq -r "$expr | select(tag == \"!!map\") | keys | .[]" "$REF_FILE" 2>/dev/null | tr '\n' ',' | sed 's/,$//')"
+          if [[ -n "$expected_keys" ]]; then
+            echo "Expected keys(s): $expected_keys"
           fi
+          echo "Matching path: $expected_path"
           break
         fi
 
