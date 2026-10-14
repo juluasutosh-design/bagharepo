@@ -10,6 +10,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/yamladd-common.sh"
 
+print_schema_help() {
+}
+
 validate_path_and_type() {
   local path_str="$1"
   local value_str="$2"
@@ -112,6 +115,7 @@ validate_path_and_type() {
         if [[ ${#fuzzy_results[@]} -gt 0 ]]; then
           echo "Did you mean one of these?"
           printf '  %s\n' "${fuzzy_results[@]}"
+          print_schema_help
         fi
       fi
       return 1
@@ -131,21 +135,38 @@ validate_path_and_type() {
   local actual_kind
   actual_kind="$(infer_value_kind "$value_str")"
 
+  local expected_kind="scalar"
+  local expected_display="scalar"
+  if yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1; then
+    expected_kind="object"
+    expected_display="object/map"
+  elif yq -e "$expr | select(tag == \"!!seq\")" "$REF_FILE" >/dev/null 2>&1; then
+    expected_kind="array"
+    expected_display="array"
+  fi
+
   if [[ "$actual_kind" == "array" ]]; then
-    yq -e "$expr | select(tag == \"!!seq\")" "$REF_FILE" >/dev/null 2>&1 || {
-      echo "Type mismatch at $path_str: expected array in referenceChart.yml"
+    if [[ "$expected_kind" != "array" ]]; then
+      echo "Type mismatch at $path_str: expected $expected_display in referenceChart.yml"
+      print_schema_help
       return 1
-    }
+    fi
   elif [[ "$actual_kind" == "object" ]]; then
-    yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1 || {
-      echo "Type mismatch at $path_str: expected object in referenceChart.yml"
+    if [[ "$expected_kind" != "object" ]]; then
+      echo "Type mismatch at $path_str: expected $expected_display in referenceChart.yml"
+      print_schema_help
       return 1
-    }
+    fi
   else
-    yq -e "$expr | select(tag != \"!!map\" and tag != \"!!seq\")" "$REF_FILE" >/dev/null 2>&1 || {
-      echo "Type mismatch at $path_str: expected scalar in referenceChart.yml"
+    if [[ "$expected_kind" == "object" ]]; then
+      echo "Type mismatch at $path_str: expected object/map in referenceChart.yml"
+      print_schema_help
       return 1
-    }
+    elif [[ "$expected_kind" == "array" ]]; then
+      echo "Type mismatch at $path_str: expected array in referenceChart.yml"
+      print_schema_help
+      return 1
+    fi
   fi
 }
 
