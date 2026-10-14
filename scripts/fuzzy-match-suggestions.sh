@@ -197,13 +197,16 @@ for segment in "${segments[@]}"; do
   value_kind="$(infer_value_kind "$value")"
   if [[ "$value_kind" == "scalar" ]] && yq -e "$expr | select(tag == \"!!map\")" "$REF_FILE" >/dev/null 2>&1; then
     expected_keys="$(yq -r "$expr | keys | .[]" "$REF_FILE" 2>/dev/null | tr '\n' ',' | sed 's/,$//')"
+    example_key="$(yq -r "$expr | select(tag == \"!!map\") | keys | .[0]" "$REF_FILE" 2>/dev/null || true)"
     echo ""
     if [[ -n "$expected_keys" ]]; then
       echo "Expected keys(s): $expected_keys"
-    else
-      echo "Expected keys(s): cpu,memory"
     fi
-    echo "Matching path: $path_str"
+    if [[ -n "$example_key" ]]; then
+      echo "Example path: ${path_str}~${example_key}"
+    else
+      echo "Example path: ${path_str}"
+    fi
     exit 1
   fi
 
