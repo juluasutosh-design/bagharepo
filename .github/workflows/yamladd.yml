@@ -194,14 +194,12 @@ jobs:
 
       - name: Fuzzy Match Suggestions
         if: ${{ failure() && steps.validate_input.outcome == 'failure' }}
-        working-directory: deploy-repo
         env:
           OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
           REF_FILE: ./referenceChart.yml
         shell: bash
         run: bash ./scripts/fuzzy-match-suggestions.sh
       - name: Run the patching script
-        working-directory: deploy-repo
         env:
           OVERRIDE_YAML: ${{ inputs.OverrideYaml }}
           RESOLVED_OVERRIDE_YAML: ${{ env.RESOLVED_OVERRIDE_YAML }}
@@ -216,10 +214,9 @@ jobs:
           fi
 
           echo "Using OverrideYaml: $OVERRIDE_YAML"
-          node ../workflow-tools/app.js
+          node app.js
 
       - name: Commit and Push changes
-        working-directory: deploy-repo
         run: |
           set -euo pipefail
 
@@ -234,7 +231,6 @@ jobs:
             git push --set-upstream origin "$branch_name"
           fi
       - name: Create PR
-        working-directory: deploy-repo
         env:
           GH_TOKEN: ${{ secrets.MYSECRET }}
         run: |
