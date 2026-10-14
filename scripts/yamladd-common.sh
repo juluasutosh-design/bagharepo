@@ -130,6 +130,20 @@ resolve_single_token_path() {
   return 2
 }
 
+list_token_paths() {
+  local token="$1"
+  local top_key results path
+
+  while IFS= read -r top_key; do
+    [[ -z "$top_key" ]] && continue
+    results=$(yq -r ".\"$top_key\" | .. | select(type == \"!!map\" and has(\"$token\")) | path | .[1:] + [\"$token\"] | map(tostring) | join(\"~\")" "$REF_FILE" 2>/dev/null || true)
+    while IFS= read -r path; do
+      [[ -z "$path" ]] && continue
+      printf '%s\n' "${top_key}~${path}"
+    done <<< "$results"
+  done < <(yq -r 'keys | .[]' "$REF_FILE" 2>/dev/null)
+}
+
 get_exception_parent_path() {
   local path_str="$1"
   local path_parts=()
