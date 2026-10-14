@@ -9,6 +9,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/yamladd-common.sh"
 
+print_schema_help() {
+  echo "   Check the schema in repo 'disc-fe-discover-devops-utlilities/referenceChart.yml' or reach out to swatdevops."
+}
+
 echo "=== Fuzzy Matching Suggestions ==="
 
 segments=()
@@ -118,6 +122,7 @@ for segment in "${segments[@]}"; do
 
       if [[ -n "$fuzzy_results" ]]; then
         echo "   💡 Did you mean? $fuzzy_results"
+        print_schema_help
       fi
     fi
   else
@@ -137,7 +142,7 @@ for segment in "${segments[@]}"; do
           else
             echo "   Expected scalar value under '${path_parts[$((p-1))]}'"
           fi
-          echo "   Check the schema in repo 'disc-fe-discover-devops-utlilities/referenceChart.yml' or reach out to swatdevops."
+          print_schema_help
           break
         fi
 
@@ -187,6 +192,7 @@ for segment in "${segments[@]}"; do
 
           if [[ -n "$fuzzy_results" ]]; then
             echo "   💡 Did you mean? $fuzzy_results"
+            print_schema_help
           fi
         fi
         break
