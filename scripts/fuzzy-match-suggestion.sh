@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/yamladd-common.sh"
 
 print_schema_help() {
-  echo "   Check the schema in repo 'disc-fe-discover-devops-utlilities/referenceChart.yml' or reach out to swatdevops."
+  echo "   For more information , Check the file in repo 'disc-fe-discover-devops-utlilities/referenceChart.yml' or reach out to swatdevops. "
 }
 
 echo "=== Fuzzy Matching Suggestions ==="
