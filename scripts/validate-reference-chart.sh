@@ -10,8 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/yamladd-common.sh"
 
-print_schema_help() {
-}
 
 validate_path_and_type() {
   local path_str="$1"
