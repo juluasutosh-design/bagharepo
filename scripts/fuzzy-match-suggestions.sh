@@ -186,6 +186,11 @@ for segment in "${segments[@]}"; do
 
           if [[ -n "$fuzzy_results" ]]; then
             echo "   💡 Did you mean? $fuzzy_results"
+            fuzzy_paths=()
+            IFS=',' read -r -a fuzzy_paths <<< "$fuzzy_results"
+            echo "   Matching paths:"
+            printf '     %s\n' "${fuzzy_paths[@]}"
+            echo "   Total paths: ${#fuzzy_paths[@]}"
           fi
         fi
         break
