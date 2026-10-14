@@ -9,11 +9,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/yamladd-common.sh"
 
-print_schema_help() {
-  echo "   For more information , Check the file in repo 'disc-fe-discover-devops-utlilities/referenceChart.yml' or reach out to swatdevops. "
-}
-
+echo "   For more information , Check the file in repo 'disc-fe-discover-devops-utlilities/referenceChart.yml' or reach out to swatdevops. "
 echo "=== Fuzzy Matching Suggestions ==="
+
 print_schema_help
 segments=()
 split_top_level "$OVERRIDE_YAML" ";" segments
